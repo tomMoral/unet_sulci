@@ -20,5 +20,10 @@ rsync -avzh --prune-empty-dirs --include="*/" --include="*/T1w/T1*brain.nii.gz" 
 ### Then:
 1. Generalise it to 3D
 2. Develop a framework to test performance
-4. Tune the network architecture
+3. Tune the network architecture
 4. Check it’s the resulting network’s capability to detect sulci that 3) Check it’s the resulting network’s capability to detect sulci that have never been labeled. For this we might want to exclude some sulci from the training set (and not just some subjects)
+
+
+## References
+1. [Automatic recognition of cortical sulci of the human brain using a congregation of neural networks.](https://www.ncbi.nlm.nih.gov/pubmed/12044997)
+  * Old style and might try to name the sulci which we don't want to.
