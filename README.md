@@ -5,8 +5,8 @@
 
 ### Dataset
 * HCP 900 for which we have
-** A cleaned AC/PC aligned T1w image of each subject brain (not MNI space)
-** The [Destrieux atlas](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2937159/) in voxel space
+  * A cleaned AC/PC-aligned T1w image of each subject brain (not in MNI space)
+  * The [Destrieux atlas](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2937159/) in voxel space
 
 Data can be downloaded with 
 ```bash
@@ -15,7 +15,7 @@ rsync -avzh --prune-empty-dirs --include="*/" --include="*/T1w/T1*brain.nii.gz" 
 
 ### Base ourselves on (but this is open to discussion):
 *  Keras (Install with `conda install -c conda-forge keras`)
-*  An (implementation of the U-net](https://github.com/jocicmarko/ultrasound-nerve-segmentation.git)
+*  An [implementation of the U-net](https://github.com/jocicmarko/ultrasound-nerve-segmentation.git)
 
 ### Then:
 1. Generalise it to 3D
