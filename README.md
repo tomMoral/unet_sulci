@@ -27,3 +27,6 @@ rsync -avzh --prune-empty-dirs --include="*/" --include="*/T1w/T1*brain.nii.gz" 
 ## References
 1. [Automatic recognition of cortical sulci of the human brain using a congregation of neural networks.](https://www.ncbi.nlm.nih.gov/pubmed/12044997)
   * Old style and might try to name the sulci which we don't want to.
+2. [DeepNAT: Deep Convolutional Neural Network for Segmenting Neuroanatomy
+](https://arxiv.org/pdf/1702.08192.pdf)
+  * Brain segmentation in grey matter, white matter, and subcortical structures
