@@ -30,7 +30,7 @@ for t in range(500):
 
     # Compute and print loss.
     loss = segmentation_loss(y_pred, y)
-    print(t, loss)
+    print("[Iteration {}] cost function {:.3e}".format(t, float(loss.data)))
 
     # Before the backward pass, use the optimizer object to zero all of the
     # gradients for the variables it will update (which are the learnable
