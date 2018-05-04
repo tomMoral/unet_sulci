@@ -163,12 +163,15 @@ def feeder(queue_feed, stop_event, batch_size=1, seed=None):
     list_subject = list(DATA_DIR_PATH.glob('[0-9]*/'))
     while not stop_event.is_set():
         subject = rng.choice(list_subject)
-        X, y = load_patches(subject)
-        X = torch.autograd.Variable(X)
-        y = torch.autograd.Variable(y)
+        try:
+            X, y = load_patches(subject)
+            X = torch.autograd.Variable(X)
+            y = torch.autograd.Variable(y)
 
-        queue_feed.put((X, y))
-        print("Size of the queue:", queue_feed.qsize())
+            queue_feed.put((X, y))
+            print("Size of the queue:", queue_feed.qsize())
+        except FileNotFoundError:
+            pass
 
 
 def get_queue_feeder(batch_size=1, maxsize_queue=10):
