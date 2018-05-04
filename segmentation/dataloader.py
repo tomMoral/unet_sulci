@@ -174,16 +174,23 @@ def feeder(queue_feed, stop_event, batch_size=1, seed=None):
             pass
 
 
-def get_queue_feeder(batch_size=1, maxsize_queue=10):
+def get_queue_feeder(batch_size=1, maxsize_queue=10, n_process=1):
     if batch_size != 1:
         raise NotImplementedError()
+
+    if n_process < 1:
+        raise ValueError("n_process should be positive. Got {}"
+                         .format(n_process))
 
     queue_feed = mp.Queue(maxsize=maxsize_queue)
     stop_event = mp.Event()
 
-    batch_loader = mp.Process(
-        target=feeder,
-        args=(queue_feed, stop_event, batch_size))
-    batch_loader.start()
+    batch_loaders = []
+    for _ in range(n_process):
+        batch_loader = mp.Process(
+            target=feeder,
+            args=(queue_feed, stop_event, batch_size))
+        batch_loader.start()
+        batch_loaders.append(batch_loader)
 
-    return queue_feed, stop_event, batch_loader
+    return queue_feed, stop_event, batch_loaders

@@ -17,16 +17,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     queue_feed, stop_event, batch_feeder = get_queue_feeder(batch_size=1,
-                                                            maxsize_queue=10)
+                                                            maxsize_queue=20,
+                                                            n_process=4)
 
     unet = Unet(n_outputs=4)
     if args.gpu:
         torch.cuda.set_device(1)
         unet = unet.cuda()
 
-    learning_rate = 1e-6
+    learning_rate = 1e-7
     optimizer = torch.optim.SGD(unet.parameters(), lr=learning_rate,
-                                momentum=.8)
+                                momentum=.5)
 
     try:
         cost = []
