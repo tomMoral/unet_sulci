@@ -142,7 +142,7 @@ def cut_image(img):
     for i in range(0, w_pad, 64):
         for j in range(0, h_pad, 64):
             for k in range(0, z_pad, 64):
-                yield padded[i:i + 64, j:j + 64, k:k + 64]
+                yield padded[i:i + 64, j:j + 64, k:k + 64][None]
 
 
 def stitch_image(patches, img_shape):
@@ -160,7 +160,7 @@ def feeder(queue_feed, stop_event, batch_size=1, seed=None):
     """Batch feeder"""
 
     rng = np.random.RandomState(seed)
-    list_subject = list(DATA_DIR_PATH.glob('[0-9]*/'))
+    list_subject = list(DATA_DIR_PATH.glob('[0-9]*/'))[1:]
     while not stop_event.is_set():
         subject = rng.choice(list_subject)
         try:
