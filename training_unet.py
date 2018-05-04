@@ -46,6 +46,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    from segmentation.config import DATA_DIR
+    DATA_DIR_PATH = pathlib.Path(DATA_DIR)
+    tst_subject = list(DATA_DIR_PATH.glob('[0-9]*/'))[0]
+
     queue_feed, stop_event, batch_feeder = get_queue_feeder(batch_size=1,
                                                             maxsize_queue=20,
                                                             n_process=10)
@@ -58,7 +62,7 @@ if __name__ == "__main__":
     learning_rate = 1e-10
     optimizer = torch.optim.Adam(unet.parameters(), lr=learning_rate)
 
-    X_tst, y_tst = load_brain(163432)
+    X_tst, y_tst = load_brain(tst_subject)
     img_shape = X_tst.shape
     batch_tst, labels_tst = cut_image(X_tst), cut_image(y_tst)
     batch_tst = torch.autograd.Variable(torch.from_numpy(batch_tst)).cuda()
