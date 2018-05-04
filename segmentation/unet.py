@@ -81,6 +81,6 @@ def segmentation_loss(y_pred, y, gpu=False):
     class_weights = torch.from_numpy(
         np.array([.014, .124, 0.282, 0.58], dtype=np.float32))
     if gpu:
-        class_weights.cuda()
+        class_weights = class_weights.cuda()
     loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights)
     return loss_fn(y_pred, y)
