@@ -93,7 +93,7 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
             print("[Iteration {}] Testing.".format(t))
-            tst_pred = np.array(unet(X_tst).data)
+            tst_pred = np.array(unet(batch_tst).data)
             tst_pred = stitch_image(tst_pred, img_shape)
             plot_segmentation(X_tst, tst_pred, y_tst)
             print("[Iteration {}] Finished.".format(t))
