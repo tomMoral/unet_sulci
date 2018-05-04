@@ -3,3 +3,5 @@ carvana-image-masking-challenge
 *bak
 *pyc
 data
+joblib
+.ipynb_checkpoints
