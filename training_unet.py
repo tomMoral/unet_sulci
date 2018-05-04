@@ -7,7 +7,7 @@ from segmentation.unet import Unet, segmentation_loss
 from segmentation.dataloader import load_brain
 
 
-unet = Unet(n_outputs=10)
+unet = Unet(n_outputs=4)
 
 learning_rate = 1e-4
 optimizer = torch.optim.Adam(unet.parameters(), lr=learning_rate)
@@ -18,8 +18,11 @@ X, y = np.array([X]), np.array([y])
 X = torch.autograd.Variable(torch.from_numpy(X))
 y = torch.autograd.Variable(torch.from_numpy(y))
 
-import IPython
-IPython.embed()
+n_batch = 1
+X = torch.randn(n_batch, 1, 64, 64, 64)
+y = np.random.randint(4, size=(n_batch, 64, 64, 64))
+X = torch.autograd.Variable(X)
+y = torch.autograd.Variable(torch.from_numpy(y))
 
 for t in range(500):
     # Forward pass: compute predicted y by passing x to the model.
@@ -27,7 +30,7 @@ for t in range(500):
 
     # Compute and print loss.
     loss = segmentation_loss(y_pred, y)
-    print(t, loss.item())
+    print("[Iteration {}] cost function {:.3e}".format(t, float(loss.data)))
 
     # Before the backward pass, use the optimizer object to zero all of the
     # gradients for the variables it will update (which are the learnable

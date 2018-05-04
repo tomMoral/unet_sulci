@@ -40,7 +40,7 @@ class Unet(torch.nn.Module):
         self.upconv_d1 = torch.nn.ConvTranspose2d(128, 64, 2, stride=2)
         self.conv_d1_1 = torch.nn.Conv2d(128, 64, kernel_size=3, padding=1)
         self.conv_d1_2 = torch.nn.Conv2d(64, 64, kernel_size=3, padding=1)
-        self.conv_d1_3 = torch.nn.Conv2d(64, n_outputs, (1, 1, 1), padding=1)
+        self.conv_d1_3 = torch.nn.Conv2d(64, n_outputs, (1, 1, 1))
 
     def forward(self, x):
         """
@@ -77,25 +77,25 @@ class Unet(torch.nn.Module):
         x = F.relu(self.conv_c5_2(x))  # (?, 1024, 17, 20, 17)
 
         x_up = self.upconv_d4(x)  # (?, 512, 34, 40, 34)
-        x = torch.cat([x_unit4, x_up], dim=1)  # (?, 1024, 34, 40, 34)
+        x = torch.cat([x_unit4, x_up], 1)  # (?, 1024, 34, 40, 34)
 
         x = F.relu(self.conv_d4_1(x))  # (?, 512, 34, 20, 34)
         x = F.relu(self.conv_d4_2(x))  # (?, 512, 34, 40, 34)
 
         x_up = self.upconv_d3(x)  # (?, 256, 68, 80, 68)
-        x = torch.cat([x_unit3, x_up], dim=1)  # (?, 512, 68, 80, 68)
+        x = torch.cat([x_unit3, x_up], 1)  # (?, 512, 68, 80, 68)
 
         x = F.relu(self.conv_d3_1(x))  # (?, 256, 68, 80, 68)
         x = F.relu(self.conv_d3_2(x))  # (?, 256, 68, 80, 68)
 
         x_up = self.upconv_d2(x)  # (?, 128, 136, 160, 136)
-        x = torch.cat([x_unit2, x_up], dim=1)  # (?, 256, 136, 160, 136)
+        x = torch.cat([x_unit2, x_up], 1)  # (?, 256, 136, 160, 136)
 
         x = F.relu(self.conv_d2_1(x))  # (?, 128, 136, 160, 136)
         x = F.relu(self.conv_d2_2(x))  # (?, 128, 136, 160, 136)
 
         x_up = self.upconv_d1(x)  # (?, 64, 272, 320, 272)
-        x = torch.cat([x_unit1, x_up], dim=1)  # (?, 128, 272, 320, 272)
+        x = torch.cat([x_unit1, x_up], 1)  # (?, 128, 272, 320, 272)
 
         x = F.relu(self.conv_d1_1(x))  # (?, 64, 272, 320, 272)
         x = F.relu(self.conv_d1_2(x))  # (?, 64, 272, 320, 272)
