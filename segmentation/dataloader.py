@@ -28,7 +28,7 @@ GROUPED_LABEL_NAMES = {
     'background': 0, 'subcortical': 1, 'gyrus': 2, 'sulcus': 3}
 
 
-mem = Memory(cachedir=CACHE_DIR)
+mem = Memory(cachedir=CACHE_DIR, verbose=0)
 
 
 def unet_pad(a, shape=(272, 320, 272)):
@@ -160,7 +160,7 @@ def feeder(queue_feed, stop_event, batch_size=1, seed=None):
     """Batch feeder"""
 
     rng = np.random.RandomState(seed)
-    list_subject = list(DATA_DIR_PATH.glob('*'))
+    list_subject = list(DATA_DIR_PATH.glob('[0-9]*/'))
     while not stop_event.is_set():
         subject = rng.choice(list_subject)
         X, y = load_patches(subject)
@@ -183,4 +183,4 @@ def get_queue_feeder(batch_size=1, maxsize_queue=10):
         args=(queue_feed, stop_event, batch_size))
     batch_loader.start()
 
-    return queue_feed, stop_event
+    return queue_feed, stop_event, batch_loader

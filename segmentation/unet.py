@@ -41,13 +41,11 @@ class Unet(torch.nn.Module):
         x = x_unit1 = F.relu(self.conv_c1_2(x))  # (?, 64, 64, 64, 64)
 
         x = m(x)  # (?, 64, 32, 32, 32)
-        print(x.size())
 
         x = F.relu(self.conv_c2_1(x))  # (?, 128, 32, 32, 32)
         x = x_unit2 = F.relu(self.conv_c2_2(x))  # (?, 128, 32, 32, 32)
 
         x = m(x)  # (?, 128, 16, 16, 16)
-        print(x.size())
 
         x = F.relu(self.conv_c3_1(x))  # (?, 256, 16, 16, 16)
         # code final
@@ -55,19 +53,16 @@ class Unet(torch.nn.Module):
 
         x_up = self.upconv_d2(x)  # (?, 128, 32, 32, 32)
         x = torch.cat([x_unit2, x_up], 1)  # (?, 256, 32, 32, 32)
-        print(x.size())
 
         x = F.relu(self.conv_d2_1(x))  # (?, 128, 32, 32, 32)
         x = F.relu(self.conv_d2_2(x))  # (?, 128, 32, 32, 32)
 
         x_up = self.upconv_d1(x)  # (?, 64, 64, 64, 64)
         x = torch.cat([x_unit1, x_up], 1)  # (?, 128, 64, 64, 64)
-        print(x.size())
 
         x = F.relu(self.conv_d1_1(x))  # (?, 64, 64, 64, 64)
         x = F.relu(self.conv_d1_2(x))  # (?, 64, 64, 64, 64)
         x = self.conv_d1_3(x)  # (?, n_output, 64, 64, 64)
-        print(x.size())
 
         # In reall
 
