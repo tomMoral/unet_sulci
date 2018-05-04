@@ -55,7 +55,7 @@ def load_brain(subject):
     return t1w_img.get_data(), _replace_label(labels_data, labels_grouping)
 
 
-@mem.cache
+# @mem.cache
 def _replace_label(labels_data, labels_grouping):
     new_labels = np.empty(labels_data.shape, dtype=int)
     for label, group in labels_grouping.items():
