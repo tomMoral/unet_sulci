@@ -78,7 +78,8 @@ def segmentation_loss(X, y, gpu=False):
     y = y.resize(n_batch * w * h * z)
 
     # Rebalance the weights of the class, hard-coded from subject 414229
-    class_weights = torch.from_numpy(np.array([1.18, 10.39, 23.59, 48.6]))
+    class_weights = torch.from_numpy(
+        np.array([1.18, 10.39, 23.59, 48.6], dtype=np.float32))
     if gpu:
         class_weights.cuda()
     loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights)
