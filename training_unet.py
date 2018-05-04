@@ -21,7 +21,8 @@ if __name__ == "__main__":
 
     unet = Unet(n_outputs=4)
     if args.gpu:
-        unet.cuda()
+        torch.cuda.set_device(1)
+        unet = unet.cuda()
 
     learning_rate = 1e-6
     optimizer = torch.optim.SGD(unet.parameters(), lr=learning_rate,
@@ -33,8 +34,8 @@ if __name__ == "__main__":
 
             X, y = queue_feed.get()
             if args.gpu:
-                X.cuda()
-                y.cuda()
+                X = X.cuda()
+                y = y.cuda()
 
             # Forward pass: compute predicted y by passing x to the model.
             y_pred = unet(X)
