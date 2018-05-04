@@ -138,7 +138,7 @@ def feeder(queue_feed, stop_event, batch_size=1, seed=None):
     """Batch feeder"""
 
     rng = np.random.RandomState(seed)
-    list_subject = list(DATA_DIR_PATH.glob('*/'))
+    list_subject = list(DATA_DIR_PATH.glob('[0-9]*/'))
     while not stop_event.is_set():
         subject = rng.choice(list_subject)
         X, y = load_patches(subject)

@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     unet = Unet(n_outputs=4)
 
-    learning_rate = 1e-5
+    learning_rate = 1e-6
     optimizer = torch.optim.SGD(unet.parameters(), lr=learning_rate,
                                 momentum=.8)
 
@@ -37,7 +37,7 @@ if __name__ == "__main__":
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            print("[Iteration {}] Finished.")
+            print("[Iteration {}] Finished.".format(t))
 
     finally:
         stop_event.set()
