@@ -71,8 +71,11 @@ class Unet(torch.nn.Module):
 
 def segmentation_loss(y_pred, y, gpu=False):
     n_batch, n_outputs, w, h, z = y_pred.size()
-    y_pred = y_pred.transpose(1, 4)
-    y_pred = y_pred.resize(n_batch * w * h * z, n_outputs)
+    assert n_batch == 1
+    y_pred = y_pred[0]
+    y_pred = y_pred.resize(n_outputs, w * h * z).transpose()
+    # y_pred = y_pred.transpose(1, 4)
+    # y_pred = y_pred.resize(n_batch * w * h * z, n_outputs)
     y_pred = F.softmax(y_pred)
 
     y = y.resize(n_batch * w * h * z)
