@@ -6,6 +6,36 @@ import torch.multiprocessing as mp
 
 from segmentation.unet import Unet, segmentation_loss
 from segmentation.dataloader import load_brain, get_queue_feeder
+from segmentation.dataloader import cut_image, stitch_image
+
+
+def plot_segmentation(X_tst, y_pred, y_, iteration=0):
+    from nilearn import plotting
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(2, 1)
+
+    plotting.plot_roi(
+        roi_img=X_tst,
+        bg_img=y_pred,
+        black_bg=False,
+        vmin=0, vmax=5,
+        axes=axes[0]
+    )
+    axes[0].set_title("Prediction")
+
+    plotting.plot_roi(
+        roi_img=X_tst,
+        bg_img=y_,
+        black_bg=False,
+        vmin=0, vmax=5,
+        axes=axes[1]
+    )
+    axes[1].set_title("Label")
+
+    plt.savefig("save_fig_{}.png".format(iteration))
+
+
 
 
 if __name__ == "__main__":
@@ -25,8 +55,14 @@ if __name__ == "__main__":
         torch.cuda.set_device(1)
         unet = unet.cuda()
 
-    learning_rate = 1e-6
+    learning_rate = 1e-10
     optimizer = torch.optim.Adam(unet.parameters(), lr=learning_rate)
+
+    X_tst, y_tst = load_brain(163432)
+    img_shape = X_tst.shape
+    batch_tst, labels_tst = cut_image(X_tst), cut_image(y_tst)
+    batch_tst = torch.autograd.Variable(torch.from_numpy(batch_tst))
+    labels_tst = torch.autograd.Variable(torch.from_numpy(labels_tst))
 
     try:
         cost = []
@@ -49,13 +85,18 @@ if __name__ == "__main__":
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            print("[Iteration {}] Testing.".format(t))
+            tst_pred = np.array(unet(X_tst).data)
+            tst_pred = stitch_image(tst_pred, img_shape)
+            plot_segmentation(X_tst, tst_pred, y_tst)
             print("[Iteration {}] Finished.".format(t))
 
     finally:
         stop_event.set()
-        try:
-            # MAke some room in the queue if it is saturated
-            queue_feed.get()
-        except Exception:
-            pass
-        batch_feeder.join()
+        for p in batch_feeder:
+            try:
+                # MAke some room in the queue if it is saturated
+                queue_feed.get()
+            except Exception:
+                pass
+            p.join()

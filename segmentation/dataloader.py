@@ -142,7 +142,7 @@ def cut_image(img):
     for i in range(0, w_pad, 64):
         for j in range(0, h_pad, 64):
             for k in range(0, z_pad, 64):
-                yield padded[i:i+64, j:j+64, k:k+64]
+                yield padded[i:i + 64, j:j + 64, k:k + 64]
 
 
 def stitch_image(patches, img_shape):
@@ -151,7 +151,7 @@ def stitch_image(patches, img_shape):
     for i in range(0, w_pad, 64):
         for j in range(0, h_pad, 64):
             for k in range(0, z_pad, 64):
-                stitched[i:i+64, j:j+64, k:k+64] = next(patches)
+                stitched[i:i + 64, j:j + 64, k:k + 64] = next(patches)
     w, h, z = img_shape
     return stitched[:w, :h, :z]
 
