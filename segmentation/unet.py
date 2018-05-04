@@ -73,7 +73,7 @@ def segmentation_loss(y_pred, y, gpu=False):
     n_batch, n_outputs, w, h, z = y_pred.size()
     assert n_batch == 1
     y_pred = y_pred[0]
-    y_pred = y_pred.resize(n_outputs, w * h * z).transpose()
+    y_pred = y_pred.resize(n_outputs, w * h * z).transpose(0, 1)
     
     y = y.resize(n_batch * w * h * z)
 
