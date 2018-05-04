@@ -40,7 +40,7 @@ if __name__ == "__main__":
             y_pred = unet(X)
 
             # Compute and print loss.
-            loss = segmentation_loss(y_pred, y)
+            loss = segmentation_loss(y_pred, y, args.gpu)
             cost.append(float(loss.data))
             print("[Iteration {}] cost function {:.3e}"
                   .format(t, cost[-1]))
