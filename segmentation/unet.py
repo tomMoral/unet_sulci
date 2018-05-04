@@ -69,18 +69,18 @@ class Unet(torch.nn.Module):
         return x
 
 
-def segmentation_loss(X, y, gpu=False):
-    n_batch, n_outputs, w, h, z = X.size()
-    X = X.transpose(1, 4)
-    X = X.resize(n_batch * w * h * z, n_outputs)
-    X = F.softmax(X)
+def segmentation_loss(y_pred, y, gpu=False):
+    n_batch, n_outputs, w, h, z = y_pred.size()
+    y_pred = y_pred.transpose(1, 4)
+    y_pred = y_pred.resize(n_batch * w * h * z, n_outputs)
+    y_pred = F.softmax(y_pred)
 
     y = y.resize(n_batch * w * h * z)
 
     # Rebalance the weights of the class, hard-coded from subject 414229
     class_weights = torch.from_numpy(
-        np.array([1.18, 10.39, 23.59, 48.6], dtype=np.float32))
+        np.array([.014, .124, 0.282, 0.58], dtype=np.float32))
     if gpu:
         class_weights.cuda()
     loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights)
-    return loss_fn(X, y)
+    return loss_fn(y_pred, y)
