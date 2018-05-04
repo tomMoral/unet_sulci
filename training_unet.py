@@ -65,6 +65,8 @@ if __name__ == "__main__":
     X_tst, y_tst = load_brain(tst_subject)
     img_shape = X_tst.shape
     batch_tst, labels_tst = cut_image(X_tst), cut_image(y_tst)
+    batch_tst = np.array(list(batch_tst))
+    labels_tst = np.array(list(labels_tst))
     batch_tst = torch.autograd.Variable(torch.from_numpy(batch_tst)).cuda()
     labels_tst = torch.autograd.Variable(torch.from_numpy(labels_tst)).cuda()
 
