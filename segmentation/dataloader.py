@@ -28,7 +28,7 @@ GROUPED_LABEL_NAMES = {
     'background': 0, 'subcortical': 1, 'gyrus': 2, 'sulcus': 3}
 
 
-mem = Memory(cachedir=CACHE_DIR)
+mem = Memory(cachedir=CACHE_DIR, verbose=0)
 
 
 def unet_pad(a, shape=(272, 320, 272)):

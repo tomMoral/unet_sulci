@@ -28,22 +28,14 @@ if __name__ == "__main__":
 
             # Compute and print loss.
             loss = segmentation_loss(y_pred, y)
-            print("[Iteration {}] cost function {:.3e}".format(t, float(loss.data)))
+            print("[Iteration {}] cost function {:.3e}"
+                  .format(t, float(loss.data)))
 
-            # Before the backward pass, use the optimizer object to zero all of the
-            # gradients for the variables it will update (which are the learnable
-            # weights of the model). This is because by default, gradients are
-            # accumulated in buffers( i.e, not overwritten) whenever .backward()
-            # is called. Checkout docs of torch.autograd.backward for more details.
             optimizer.zero_grad()
-
-            # Backward pass: compute gradient of the loss with respect to model
-            # parameters
             loss.backward()
-
-            # Calling the step function on an Optimizer makes an update to its
-            # parameters
             optimizer.step()
+            print("[Iteration {}] Finished.")
+
     finally:
         stop_event.set()
         for _ in range(10):
