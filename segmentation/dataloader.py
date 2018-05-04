@@ -134,6 +134,28 @@ def load_patches(subject, random_state=None):
     return (X, y)
 
 
+def cut_image(img):
+    w, h, z = img.shape
+    w_pad, h_pad, z_pad = map(int, (64 * np.ceil(d / 64) for d in img.shape))
+    padded = np.zeros((w_pad, h_pad, z_pad))
+    padded[:w, :h, :z] = img
+    for i in range(0, w_pad, 64):
+        for j in range(0, h_pad, 64):
+            for k in range(0, z_pad, 64):
+                yield padded[i:i+64, j:j+64, k:k+64]
+
+
+def stitch_image(patches, img_shape):
+    w_pad, h_pad, z_pad = map(int, (64 * np.ceil(d / 64) for d in img_shape))
+    stitched = np.empty((w_pad, h_pad, z_pad))
+    for i in range(0, w_pad, 64):
+        for j in range(0, h_pad, 64):
+            for k in range(0, z_pad, 64):
+                stitched[i:i+64, j:j+64, k:k+64] = next(patches)
+    w, h, z = img_shape
+    return stitched[:w, :h, :z]
+
+
 def feeder(queue_feed, stop_event, batch_size=1, seed=None):
     """Batch feeder"""
 
