@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     unet = Unet(n_outputs=4)
     if args.gpu:
-        torch.cuda.set_device(1)
+        torch.cuda.set_device(0)
         unet = unet.cuda()
 
     learning_rate = 1e-10
@@ -61,8 +61,8 @@ if __name__ == "__main__":
     X_tst, y_tst = load_brain(163432)
     img_shape = X_tst.shape
     batch_tst, labels_tst = cut_image(X_tst), cut_image(y_tst)
-    batch_tst = torch.autograd.Variable(torch.from_numpy(batch_tst))
-    labels_tst = torch.autograd.Variable(torch.from_numpy(labels_tst))
+    batch_tst = torch.autograd.Variable(torch.from_numpy(batch_tst)).cuda()
+    labels_tst = torch.autograd.Variable(torch.from_numpy(labels_tst)).cuda()
 
     try:
         cost = []
