@@ -17,15 +17,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     queue_feed, stop_event, batch_feeder = get_queue_feeder(batch_size=1,
-                                                            maxsize_queue=10)
+                                                            maxsize_queue=20,
+                                                            n_process=10)
 
     unet = Unet(n_outputs=4)
     if args.gpu:
-        unet.cuda()
+        torch.cuda.set_device(1)
+        unet = unet.cuda()
 
-    learning_rate = 1e-6
-    optimizer = torch.optim.SGD(unet.parameters(), lr=learning_rate,
-                                momentum=.8)
+    learning_rate = 1e-5
+    optimizer = torch.optim.Adam(unet.parameters(), lr=learning_rate)
 
     try:
         cost = []
@@ -33,8 +34,8 @@ if __name__ == "__main__":
 
             X, y = queue_feed.get()
             if args.gpu:
-                X.cuda()
-                y.cuda()
+                X = X.cuda()
+                y = y.cuda()
 
             # Forward pass: compute predicted y by passing x to the model.
             y_pred = unet(X)
