@@ -10,15 +10,17 @@ from segmentation.dataloader import load_brain, get_queue_feeder
 
 if __name__ == "__main__":
 
-    queue_feed, stop_event = get_queue_feeder(batch_size=1, maxsize_queue=10)
+    queue_feed, stop_event, batch_feeder = get_queue_feeder(batch_size=1,
+                                                            maxsize_queue=10)
 
     unet = Unet(n_outputs=4)
 
     learning_rate = 1e-5
-    optimizer = torch.optim.Adam(unet.parameters(), lr=learning_rate)
+    optimizer = torch.optim.SGD(unet.parameters(), lr=learning_rate,
+                                momentum=.8)
 
     try:
-
+        cost = []
         for t in range(500):
 
             X, y = queue_feed.get()
@@ -28,8 +30,9 @@ if __name__ == "__main__":
 
             # Compute and print loss.
             loss = segmentation_loss(y_pred, y)
+            cost.append(float(loss.data))
             print("[Iteration {}] cost function {:.3e}"
-                  .format(t, float(loss.data)))
+                  .format(t, cost[-1]))
 
             optimizer.zero_grad()
             loss.backward()
@@ -38,6 +41,9 @@ if __name__ == "__main__":
 
     finally:
         stop_event.set()
-        for _ in range(10):
-            X, y = queue_feed.get()
-        batch_loader.join()
+        try:
+            # MAke some room in the queue if it is saturated
+            queue_feed.get()
+        except Exception:
+            pass
+        batch_feeder.join()

@@ -161,4 +161,4 @@ def get_queue_feeder(batch_size=1, maxsize_queue=10):
         args=(queue_feed, stop_event, batch_size))
     batch_loader.start()
 
-    return queue_feed, stop_event
+    return queue_feed, stop_event, batch_loader
