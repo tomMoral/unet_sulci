@@ -9,11 +9,19 @@ from segmentation.dataloader import load_brain, get_queue_feeder
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser('Programme to launch experiemnt')
+    parser.add_argument('--gpu', action="store_true",
+                        help='Use the GPU for training')
+
+    args = parser.parse_args()
 
     queue_feed, stop_event, batch_feeder = get_queue_feeder(batch_size=1,
                                                             maxsize_queue=10)
 
     unet = Unet(n_outputs=4)
+    if args.gpu:
+        unet.cuda()
 
     learning_rate = 1e-6
     optimizer = torch.optim.SGD(unet.parameters(), lr=learning_rate,
@@ -24,6 +32,9 @@ if __name__ == "__main__":
         for t in range(500):
 
             X, y = queue_feed.get()
+            if args.gpu:
+                X.cuda()
+                y.cuda()
 
             # Forward pass: compute predicted y by passing x to the model.
             y_pred = unet(X)

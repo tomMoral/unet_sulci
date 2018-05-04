@@ -77,5 +77,7 @@ def segmentation_loss(X, y):
 
     y = y.resize(n_batch * w * h * z)
 
-    loss_fn = torch.nn.CrossEntropyLoss()
+    # Rebalance the weights of the class, hard-coded from subject 414229
+    class_weights = torch.from_numpy(np.array([1.18, 10.39, 23.59, 48.6]))
+    loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights)
     return loss_fn(X, y)
