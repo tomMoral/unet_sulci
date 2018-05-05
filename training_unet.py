@@ -8,7 +8,7 @@ import torch.multiprocessing as mp
 from segmentation.unet import Unet, segmentation_loss
 from segmentation.dataloader import load_brain, get_queue_feeder
 from segmentation.dataloader import cut_image, stitch_image
-from segmentation.plotting import plot_patch_prediction
+from segmentation.plotting import plot_segmentation, plot_patch_prediction
 
 
 import os
@@ -70,10 +70,9 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
             print("[Iteration {}] Testing.".format(t))
-            fig = plot_patch_prediction(np.asarray(X)[0, 0],
-                                        np.asarray(y)[0],
-                                        np.asarray(y_pred)[0])
-            fig.savefig('prediction_iteration_{}.png'.format(t))
+            tst_pred = np.array([unet(patch).data for patch in batch_tst])
+            tst_pred = stitch_image(tst_pred, img_shape)
+            plot_segmentation(X_tst, y_tst, tst_pred)
             print("[Iteration {}] Finished.".format(t))
 
     finally:

@@ -6,19 +6,9 @@ from nilearn import plotting as niplot
 _DEFAULT_COLORS = ('white', 'gray', 'blue', 'red')
 
 
-def plot_segmentation(anat, y_pred, y_true, out_file=None, **kwargs):
+def plot_segmentation(anat, y_true, y_pred, out_file=None, **kwargs):
 
     fig, axes = plt.subplots(2, 1)
-
-    niplot.plot_roi(
-        roi_img=y_pred,
-        bg_img=anat,
-        black_bg=False,
-        vmin=0,
-        vmax=5,
-        axes=axes[0],
-        **kwargs)
-    axes[0].set_title("Prediction")
 
     niplot.plot_roi(
         roi_img=y_true,
@@ -26,9 +16,19 @@ def plot_segmentation(anat, y_pred, y_true, out_file=None, **kwargs):
         black_bg=False,
         vmin=0,
         vmax=5,
+        axes=axes[0],
+        **kwargs)
+    axes[0].set_title("Label")
+
+    niplot.plot_roi(
+        roi_img=y_pred,
+        bg_img=anat,
+        black_bg=False,
+        vmin=0,
+        vmax=5,
         axes=axes[1],
         **kwargs)
-    axes[1].set_title("Label")
+    axes[1].set_title("Prediction")
 
     if out_file is not None:
         plt.savefig(out_file)
