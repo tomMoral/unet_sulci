@@ -10,6 +10,10 @@ from segmentation.dataloader import load_brain, get_queue_feeder
 from segmentation.dataloader import cut_image, stitch_image
 
 
+import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
+
 def plot_segmentation(X_tst, y_pred, y_, iteration=0):
     from nilearn import plotting
     import matplotlib.pyplot as plt
@@ -37,13 +41,13 @@ def plot_segmentation(X_tst, y_pred, y_, iteration=0):
     plt.savefig("save_fig_{}.png".format(iteration))
 
 
-
-
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser('Programme to launch experiemnt')
+    parser = argparse.ArgumentParser('Programme to launch experiment')
     parser.add_argument('--gpu', action="store_true",
                         help='Use the GPU for training')
+    parser.add_argument('--preprocessors', type=int, default=5,
+                        help='# of process to load the patches.')
 
     args = parser.parse_args()
 
@@ -51,9 +55,8 @@ if __name__ == "__main__":
     DATA_DIR_PATH = pathlib.Path(DATA_DIR)
     tst_subject = list(DATA_DIR_PATH.glob('[0-9]*/'))[0]
 
-    queue_feed, stop_event, batch_feeder = get_queue_feeder(batch_size=1,
-                                                            maxsize_queue=20,
-                                                            n_process=10)
+    queue_feed, stop_event, batch_feeder = get_queue_feeder(
+        batch_size=1, maxsize_queue=20, n_process=args.preprocessors)
 
     unet = Unet(n_outputs=4)
     if args.gpu:
@@ -66,10 +69,10 @@ if __name__ == "__main__":
     X_tst, y_tst = load_brain(tst_subject)
     img_shape = X_tst.shape
     batch_tst, labels_tst = cut_image(X_tst), cut_image(y_tst)
-    batch_tst = np.array(list(batch_tst))
-    labels_tst = np.array(list(labels_tst))
-    batch_tst = torch.autograd.Variable(torch.from_numpy(batch_tst)).cuda()
-    labels_tst = torch.autograd.Variable(torch.from_numpy(labels_tst)).cuda()
+    batch_tst = np.array(list(batch_tst), dtype=np.float32)
+    labels_tst = np.array(list(labels_tst), dtype=np.float32)
+    batch_tst = torch.from_numpy(batch_tst).cuda()
+    labels_tst = torch.from_numpy(labels_tst).cuda()
 
     try:
         cost = []
@@ -85,7 +88,7 @@ if __name__ == "__main__":
 
             # Compute and print loss.
             loss = segmentation_loss(y_pred, y, args.gpu)
-            cost.append(float(loss.data))
+            cost.append(loss.item())
             print("[Iteration {}] cost function {:.3e}"
                   .format(t, cost[-1]))
 
@@ -99,6 +102,7 @@ if __name__ == "__main__":
             print("[Iteration {}] Finished.".format(t))
 
     finally:
+        print("Stopping the batche_feeders")
         stop_event.set()
         for p in batch_feeder:
             try:
@@ -106,4 +110,5 @@ if __name__ == "__main__":
                 queue_feed.get()
             except Exception:
                 pass
+        for p in batch_feeder:
             p.join()

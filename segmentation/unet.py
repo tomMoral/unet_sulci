@@ -70,13 +70,6 @@ class Unet(torch.nn.Module):
 
 
 def segmentation_loss(y_pred, y, gpu=False):
-    n_batch, n_outputs, w, h, z = y_pred.size()
-    assert n_batch == 1
-    y_pred = y_pred[0]
-    y_pred = y_pred.resize(n_outputs, w * h * z).transpose(0, 1)
-    
-    y = y.resize(n_batch * w * h * z)
-
     # Rebalance the weights of the class, hard-coded from subject 414229
     class_weights = torch.from_numpy(
         np.array([.014, .124, 0.282, 0.58], dtype=np.float32))

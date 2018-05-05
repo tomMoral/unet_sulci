@@ -129,7 +129,7 @@ def load_patches(subject, random_state=None):
 
     y = torch.from_numpy(labels_im[w0:w0 + 64,
                                    h0:h0 + 64,
-                                   z0:z0 + 64].reshape((1, 1, 64, 64, 64)))
+                                   z0:z0 + 64].reshape((1, 64, 64, 64)))
 
     return (X, y)
 
@@ -165,9 +165,6 @@ def feeder(queue_feed, stop_event, batch_size=1, seed=None):
         subject = rng.choice(list_subject)
         try:
             X, y = load_patches(subject)
-            X = torch.autograd.Variable(X)
-            y = torch.autograd.Variable(y)
-
             queue_feed.put((X, y))
             print("Size of the queue:", queue_feed.qsize())
         except FileNotFoundError:
