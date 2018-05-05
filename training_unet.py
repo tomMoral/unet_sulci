@@ -8,37 +8,11 @@ import torch.multiprocessing as mp
 from segmentation.unet import Unet, segmentation_loss
 from segmentation.dataloader import load_brain, get_queue_feeder
 from segmentation.dataloader import cut_image, stitch_image
+from segmentation.plotting import plot_patch_prediction
 
 
 import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-
-
-def plot_segmentation(X_tst, y_pred, y_, iteration=0):
-    from nilearn import plotting
-    import matplotlib.pyplot as plt
-
-    fig, axes = plt.subplots(2, 1)
-
-    plotting.plot_roi(
-        roi_img=X_tst,
-        bg_img=y_pred,
-        black_bg=False,
-        vmin=0, vmax=5,
-        axes=axes[0]
-    )
-    axes[0].set_title("Prediction")
-
-    plotting.plot_roi(
-        roi_img=X_tst,
-        bg_img=y_,
-        black_bg=False,
-        vmin=0, vmax=5,
-        axes=axes[1]
-    )
-    axes[1].set_title("Label")
-
-    plt.savefig("save_fig_{}.png".format(iteration))
 
 
 if __name__ == "__main__":
@@ -96,9 +70,10 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
             print("[Iteration {}] Testing.".format(t))
-            tst_pred = np.array(unet(batch_tst).data)
-            tst_pred = stitch_image(tst_pred, img_shape)
-            plot_segmentation(X_tst, tst_pred, y_tst)
+            fig = plot_patch_prediction(np.asarray(X)[0, 0],
+                                        np.asarray(y)[0],
+                                        np.asarray(y_pred)[0])
+            fig.savefig('prediction_iteration_{}.png'.format(t))
             print("[Iteration {}] Finished.".format(t))
 
     finally:
