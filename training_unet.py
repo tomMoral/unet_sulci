@@ -45,8 +45,10 @@ if __name__ == "__main__":
     batch_tst, labels_tst = cut_image(X_tst), cut_image(y_tst)
     batch_tst = np.array(list(batch_tst), dtype=np.float32)
     labels_tst = np.array(list(labels_tst), dtype=np.float32)
-    batch_tst = torch.from_numpy(batch_tst).cuda()
-    labels_tst = torch.from_numpy(labels_tst).cuda()
+    batch_tst = [torch.from_numpy(np.asarray([patch])).cuda()
+                 for patch in batch_tst]
+    # batch_tst = torch.from_numpy(batch_tst).cuda()
+    # labels_tst = torch.from_numpy(labels_tst).cuda()
 
     try:
         cost = []
