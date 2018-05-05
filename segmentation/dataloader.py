@@ -1,5 +1,4 @@
 import re
-import os
 import torch
 import pathlib
 import numpy as np
@@ -161,7 +160,7 @@ def feeder(queue_feed, stop_event, batch_size=1, seed=None):
     list_subject = DATA_DIR_PATH.glob('[0-9]*/')
     subject_nb = [subject_dir.name for subject_dir in list_subject]
     while not stop_event.is_set():
-        subject = rng.choice(list_subject)
+        subject = rng.choice(subject_nb)
         try:
             X, y = load_patches(subject)
             queue_feed.put((X, y))
