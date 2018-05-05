@@ -43,19 +43,19 @@ def unet_pad(a, shape=(272, 320, 272)):
     return output
 
 
+@mem.cache
 def load_brain(subject):
     """Load and preprocess the data from 1 subject
 
     """
-    t1w_img = nib.load(str(subject / T1W_PATH))
-    labels_img = nib.load(str(subject / LABELS_PATH))
+    t1w_img = nib.load(str(DATA_DIR_PATH / str(subject) / T1W_PATH))
+    labels_img = nib.load(str(DATA_DIR_PATH / str(subject) / LABELS_PATH))
     labels_info = _read_label_img_extension(labels_img)
     labels_grouping = _group_destrieux_labels(labels_info['label_names'])
     labels_data = labels_img.get_data()
     return t1w_img.get_data(), _replace_label(labels_data, labels_grouping)
 
 
-# @mem.cache
 def _replace_label(labels_data, labels_grouping):
     new_labels = np.empty(labels_data.shape, dtype=int)
     for label, group in labels_grouping.items():
@@ -118,9 +118,7 @@ def load_patches(subject, random_state=None):
 
     shape = np.asarray(t1w_im.shape)
     shape -= 64 + 1
-    i0 = []
-    for m in shape:
-        i0 += [rng.randint(m)]
+    i0 = [rng.randint(m) for m in shape]
     w0, h0, z0 = i0
 
     X = torch.from_numpy(t1w_im[w0:w0 + 64,
@@ -160,7 +158,8 @@ def feeder(queue_feed, stop_event, batch_size=1, seed=None):
     """Batch feeder"""
 
     rng = np.random.RandomState(seed)
-    list_subject = list(DATA_DIR_PATH.glob('[0-9]*/'))[1:]
+    list_subject = DATA_DIR_PATH.glob('[0-9]*/')
+    subject_nb = [subject_dir.name for subject_dir in list_subject]
     while not stop_event.is_set():
         subject = rng.choice(list_subject)
         try:
