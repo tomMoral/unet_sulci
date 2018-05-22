@@ -5,4 +5,3 @@ carvana-image-masking-challenge
 data
 joblib
 .ipynb_checkpoints
-*.png
