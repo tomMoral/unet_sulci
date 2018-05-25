@@ -114,15 +114,18 @@ def load_patches(subject, random_state=None):
 
     # Load one subject
     t1w_im, labels_im = load_brain(subject)
+    t1w_im = np.asarray(t1w_im, dtype=np.float32)
 
     shape = np.asarray(t1w_im.shape)
     shape -= 64 + 1
     i0 = [rng.randint(m) for m in shape]
     w0, h0, z0 = i0
 
-    X = torch.from_numpy(t1w_im[w0:w0 + 64,
-                                h0:h0 + 64,
-                                z0:z0 + 64].reshape((1, 1, 64, 64, 64)))
+    X = t1w_im[w0:w0 + 64,
+               h0:h0 + 64,
+               z0:z0 + 64].reshape((1, 1, 64, 64, 64))
+    X /= np.max(t1w_im)
+    X = torch.from_numpy(X)
 
     y = torch.from_numpy(labels_im[w0:w0 + 64,
                                    h0:h0 + 64,

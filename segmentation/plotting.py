@@ -50,24 +50,30 @@ def plot_patch(patch,
                cmap=None,
                norm=None,
                cmap_bounds=None,
-               cbar_ticks=None):
+               cbar_ticks=None,
+               vmin=None,
+               vmax=None):
     if ax is None:
         fig, ax = plt.subplots()
+    if vmin is None:
+        vmin = min(0, patch.min())
+    if vmax is None:
+        vmax = patch.max()
     ax.set_aspect(1)
     cmap = check_cmap(cmap, patch.dtype)
     cax = ax.imshow(
         patch[:, :, z],
         interpolation='nearest',
         cmap=cmap,
-        vmin=min(0, patch.min()),
-        vmax=patch.max(),
+        vmin=vmin,
+        vmax=vmax,
         norm=norm)
     ax.figure.colorbar(
         cax, norm=norm, boundaries=cmap_bounds, ticks=cbar_ticks, ax=ax)
 
 
 def plot_anat_patch(patch, z=0, ax=None, cmap=None):
-    return plot_patch(patch, z, ax=ax, cmap=cmap)
+    return plot_patch(patch, z, ax=ax, cmap=cmap, vmin=0, vmax=1)
 
 
 def plot_segmentation_patch(patch, z=0, ax=None, colors=_DEFAULT_COLORS):
@@ -81,7 +87,9 @@ def plot_segmentation_patch(patch, z=0, ax=None, colors=_DEFAULT_COLORS):
         norm=norm,
         cmap_bounds=bounds - .5,
         cbar_ticks=bounds,
-        ax=ax)
+        ax=ax,
+        vmin=0,
+        vmax=4)
 
 
 def plot_anat_and_segmentation_patch(anat, segmentation, z=0):
