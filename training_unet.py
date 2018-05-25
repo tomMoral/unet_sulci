@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 from segmentation.unet import Unet, segmentation_loss
 from segmentation.dataloader import load_brain, get_queue_feeder, load_patches
 from segmentation.dataloader import cut_image, stitch_image, _EXAMPLE_SUBJECT
+from segmentation.dataloader import feeder_sync
 from segmentation.plotting import plot_segmentation, plot_patch_prediction
 
 
@@ -28,6 +29,7 @@ if __name__ == "__main__":
                         help='Use the GPU for training')
     parser.add_argument('--preprocessors', type=int, default=5,
                         help='# of process to load the patches.')
+    parser.add_argument('--lr', type=float, default=1e-4)
 
     args = parser.parse_args()
     print(args.gpu)
@@ -48,7 +50,7 @@ if __name__ == "__main__":
         torch.cuda.set_device(0)
         unet = unet.cuda()
 
-    learning_rate = 1e-3
+    learning_rate = args.lr
     optimizer = torch.optim.Adam(unet.parameters(), lr=learning_rate)
 
     X_tst, y_tst = load_brain(tst_subject)
@@ -62,12 +64,14 @@ if __name__ == "__main__":
         batch_tst = batch_tst.cuda()
         labels_tst = labels_tst.cuda()
 
+    feeder = feeder_sync(0)
     try:
         cost = []
-        for t in range(500):
+        for t in range(5000):
 
-            X, y = load_patches(_EXAMPLE_SUBJECT)
+            # X, y = load_patches(_EXAMPLE_SUBJECT)
             # X, y = queue_feed.get()
+            X, y = next(feeder)
             if args.gpu:
                 X = X.cuda()
                 y = y.cuda()
@@ -99,7 +103,7 @@ if __name__ == "__main__":
             print("[Iteration {}] Finished.".format(t))
 
     finally:
-        print("Stopping the batche_feeders")
+        print("Stopping the batch_feeders")
         # stop_event.set()
         # for p in batch_feeder:
         #     try:

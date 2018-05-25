@@ -156,6 +156,24 @@ def stitch_image(patches, img_shape):
     return stitched[:w, :h, :z]
 
 
+def list_subjects():
+    return sorted([s.name for s in DATA_DIR_PATH.glob('[0-9]*/')])
+
+
+def feeder_sync(seed=None):
+    subjects = list_subjects()
+    rng = np.random.RandomState(seed)
+    while(True):
+        subject = rng.choice(subjects)
+        print('subject: {}'.format(subject))
+        for i in range(100):
+            try:
+                X, y = load_patches(subject)
+                yield (X, y)
+            except FileNotFoundError:
+                pass
+
+
 def feeder(queue_feed, stop_event, batch_size=1, seed=None):
     """Batch feeder"""
 
