@@ -4,6 +4,7 @@ import torch
 import pathlib
 import numpy as np
 import torch.multiprocessing as mp
+from matplotlib import pyplot as plt
 
 
 from segmentation.unet import Unet, segmentation_loss
@@ -89,10 +90,12 @@ if __name__ == "__main__":
             tst_pred = np.argmax(tst_pred, axis=1)
             # tst_pred = stitch_image(tst_pred, img_shape)
             # fig = plot_segmentation(X_tst, tst_pred, y_tst)
-            fig = plot_patch_prediction(
-                np.array(X.data)[0, 0], np.array(y.data)[0], tst_pred[0], z=30)
-            fig.savefig(str(
-                plots_dir / 'prediction_iteration_{}.png'.format(t)))
+            if not t % 10:
+                fig = plot_patch_prediction(
+                    np.array(X.data)[0, 0], np.array(y.data)[0], tst_pred[0], z=30)
+                fig.savefig(str(
+                    plots_dir / 'prediction_iteration_{}.png'.format(t)))
+                plt.close('all')
             print("[Iteration {}] Finished.".format(t))
 
     finally:
