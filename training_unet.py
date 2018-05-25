@@ -17,7 +17,7 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 
 def time_stamp():
-    datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
+    return datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
 
 
 if __name__ == "__main__":
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     from segmentation.config import DATA_DIR
     # DATA_DIR_PATH = pathlib.Path(DATA_DIR)
     # tst_subject = list(DATA_DIR_PATH.glob('[0-9]*/'))[0]
-    plots_dir = pathlib.Path('.') / 'figures' / 'training_unet _{}'.format(
+    plots_dir = pathlib.Path('.') / 'figures' / 'training_unet_{}'.format(
         time_stamp())
     plots_dir.mkdir(parents=True)
 
