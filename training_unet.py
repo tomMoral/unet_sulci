@@ -1,3 +1,4 @@
+import datetime
 
 import torch
 import pathlib
@@ -15,6 +16,10 @@ import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 
+def time_stamp():
+    datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser('Programme to launch experiment')
@@ -29,6 +34,9 @@ if __name__ == "__main__":
     from segmentation.config import DATA_DIR
     # DATA_DIR_PATH = pathlib.Path(DATA_DIR)
     # tst_subject = list(DATA_DIR_PATH.glob('[0-9]*/'))[0]
+    plots_dir = pathlib.Path('.') / 'figures' / 'training_unet _{}'.format(
+        time_stamp())
+    plots_dir.mkdir(parents=True)
 
     tst_subject = _EXAMPLE_SUBJECT
     # queue_feed, stop_event, batch_feeder = get_queue_feeder(
@@ -83,7 +91,8 @@ if __name__ == "__main__":
             # fig = plot_segmentation(X_tst, tst_pred, y_tst)
             fig = plot_patch_prediction(
                 np.array(X.data)[0, 0], np.array(y.data)[0], tst_pred[0], z=30)
-            fig.savefig('prediction_iteration_{}.png'.format(t))
+            fig.savefig(str(
+                plots_dir / 'prediction_iteration_{}.png'.format(t)))
             print("[Iteration {}] Finished.".format(t))
 
     finally:
