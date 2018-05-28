@@ -160,18 +160,24 @@ def list_subjects():
     return sorted([s.name for s in DATA_DIR_PATH.glob('[0-9]*/')])
 
 
-def feeder_sync(seed=None):
+def feeder_sync(seed=None, max_patches=None, verbose=True):
     subjects = list_subjects()
     rng = np.random.RandomState(seed)
+    n_patches = 0
     while(True):
         subject = rng.choice(subjects)
-        print('subject: {}'.format(subject))
+        if verbose:
+            print('subject: {}'.format(subject))
         for i in range(100):
+            if n_patches == max_patches:
+                return
             try:
                 X, y = load_patches(subject)
                 yield (X, y)
-            except FileNotFoundError:
-                pass
+                n_patches += 1
+            except Exception:
+                if verbose:
+                    print('bad subject: {}'.format(subject))
 
 
 def feeder(queue_feed, stop_event, batch_size=1, seed=None):

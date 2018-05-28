@@ -71,8 +71,11 @@ class Unet(torch.nn.Module):
 
 def segmentation_loss(y_pred, y, gpu=False):
     # Rebalance the weights of the class, hard-coded from subject 414229
+    # class_weights = torch.from_numpy(
+    #     np.array([.014, .124, 0.282, 0.58], dtype=np.float32))
+    # rebalance hard-coded from many sampled patches
     class_weights = torch.from_numpy(
-        np.array([.014, .124, 0.282, 0.58], dtype=np.float32))
+        np.array([0.042, 0.135, 0.283, 0.54], dtype=np.float32))
     # class_weights = torch.from_numpy(
     #     np.array([1., 1., 1., 1.], dtype=np.float32))
     if gpu:
