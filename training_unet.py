@@ -78,7 +78,7 @@ if __name__ == "__main__":
                 y_pred = np.argmax(y_pred, axis=1)
                 fig = plot_patch_prediction(
                     np.array(X.data)[0, 0], np.array(y.data)[0],
-                    y_pred[0], z=30)
+                    y_pred[0], z=30, patch_info=patch)
                 fig.savefig(str(
                     plots_dir / 'prediction_iteration_{}.png'.format(t)))
                 plt.close('all')

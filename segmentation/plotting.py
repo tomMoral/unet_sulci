@@ -99,7 +99,10 @@ def plot_anat_and_segmentation_patch(anat, segmentation, z=0):
     return fig
 
 
-def plot_patch_prediction(anat, y_true, y_pred, z=0):
+def plot_patch_prediction(anat, y_true, y_pred, z=0, patch_info={}):
+    # TODO: use 'T1_file', 'patch_x0', 'patch_y0', 'patch_z0' in patch_info
+    # to show patch position in slice. z gives the slice within the patch
+    # patch shape is 64, 64, 64
     fig, axes = plt.subplots(1, 3, figsize=(8, 2))
     plot_anat_patch(anat, z=z, ax=axes[0])
     axes[0].set_title('Anat')
