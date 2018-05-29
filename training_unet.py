@@ -5,12 +5,10 @@ import pathlib
 import numpy as np
 import torch.multiprocessing as mp
 from matplotlib import pyplot as plt
-
+from nilearn import image
 
 from segmentation.unet import Unet, segmentation_loss
-from segmentation.dataloader import load_brain, get_queue_feeder, load_patches
-from segmentation.dataloader import cut_image, stitch_image, _EXAMPLE_SUBJECT
-from segmentation.dataloader import feeder_sync
+from segmentation import dataloader
 from segmentation.plotting import plot_segmentation, plot_patch_prediction
 
 
@@ -32,16 +30,11 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=1e-4)
 
     args = parser.parse_args()
-    print(args.gpu)
 
-    from segmentation.config import DATA_DIR
-    # DATA_DIR_PATH = pathlib.Path(DATA_DIR)
-    # tst_subject = list(DATA_DIR_PATH.glob('[0-9]*/'))[0]
     plots_dir = pathlib.Path('.') / 'figures' / 'training_unet_{}'.format(
         time_stamp())
     plots_dir.mkdir(parents=True)
 
-    tst_subject = _EXAMPLE_SUBJECT
     # queue_feed, stop_event, batch_feeder = get_queue_feeder(
     #     batch_size=1, maxsize_queue=20, n_process=args.preprocessors)
 
@@ -53,25 +46,17 @@ if __name__ == "__main__":
     learning_rate = args.lr
     optimizer = torch.optim.Adam(unet.parameters(), lr=learning_rate)
 
-    X_tst, y_tst = load_brain(tst_subject)
-    img_shape = X_tst.shape
-    batch_tst, labels_tst = cut_image(X_tst), cut_image(y_tst)
-    batch_tst = np.array(list(batch_tst), dtype=np.float32)
-    labels_tst = np.array(list(labels_tst), dtype=np.float32)
-    batch_tst = torch.from_numpy(batch_tst)
-    labels_tst = torch.from_numpy(labels_tst)
-    if args.gpu:
-        batch_tst = batch_tst.cuda()
-        labels_tst = labels_tst.cuda()
-
-    feeder = feeder_sync(0)
+    train_subjects = dataloader.train_subjects()
+    test_subject = dataloader.load_brain(dataloader.test_subjects()[0])
+    test_img_shape = test_subject['T1'].shape
+    batch_tst = dataloader.cut_image(test_subject['T1'])
+    feeder = dataloader.feeder_sync(subjects=train_subjects, seed=0)
     try:
         cost = []
         for t in range(5000):
 
-            # X, y = load_patches(_EXAMPLE_SUBJECT)
-            # X, y = queue_feed.get()
-            X, y = next(feeder)
+            patch = next(feeder)
+            X, y = patch['T1_patch'], patch['labels_patch']
             if args.gpu:
                 X = X.cuda()
                 y = y.cuda()
@@ -88,19 +73,43 @@ if __name__ == "__main__":
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            print("[Iteration {}] Testing.".format(t))
-            # tst_pred = np.array(unet(batch_tst).data)
-            tst_pred = np.array(unet(X).data)
-            tst_pred = np.argmax(tst_pred, axis=1)
-            # tst_pred = stitch_image(tst_pred, img_shape)
-            # fig = plot_segmentation(X_tst, tst_pred, y_tst)
             if not t % 10:
+                y_pred = y_pred.data
+                y_pred = np.argmax(y_pred, axis=1)
                 fig = plot_patch_prediction(
-                    np.array(X.data)[0, 0], np.array(y.data)[0], tst_pred[0], z=30)
+                    np.array(X.data)[0, 0], np.array(y.data)[0],
+                    y_pred[0], z=30)
                 fig.savefig(str(
                     plots_dir / 'prediction_iteration_{}.png'.format(t)))
                 plt.close('all')
-            print("[Iteration {}] Finished.".format(t))
+        # test on whole image:
+        print('Testing ...')
+        test_pred = []
+        for batch in batch_tst:
+            batch = torch.from_numpy(np.array([batch], dtype=np.float32))
+            if args.gpu:
+                batch = batch.cuda()
+            test_pred.append(np.argmax(np.array(unet(batch).data), axis=1)[0])
+        stitched = dataloader.stitch_image(test_pred, test_img_shape)
+        pred_img = image.new_img_like(test_subject['labels_file'],
+                                        stitched)
+        true_img = image.new_img_like(test_subject['labels_file'],
+                                        test_subject['labels'])
+        pred_img.to_filename(
+            str(plots_dir /
+                'prediction_for_subject_{}_iter_{}.nii.gz'.format(
+                    test_subject['subject_id'], t)))
+        true_img.to_filename(
+            str(plots_dir / 'true_labels_for_subject_{}.nii.gz'.format(
+                test_subject['subject_id'])))
+        plot_segmentation(
+            test_subject['T1_file'],
+            true_img,
+            pred_img,
+            out_file=str(
+                plots_dir /
+                'whole_image_segmentation_subject_{}_iter_{}.png'.format(
+                    test_subject['subject_id'], t)))
 
     finally:
         print("Stopping the batch_feeders")

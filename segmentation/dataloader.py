@@ -47,12 +47,20 @@ def load_brain(subject):
     """Load and preprocess the data from 1 subject
 
     """
-    t1w_img = nib.load(str(DATA_DIR_PATH / str(subject) / T1W_PATH))
-    labels_img = nib.load(str(DATA_DIR_PATH / str(subject) / LABELS_PATH))
+    t1_path = str(DATA_DIR_PATH / str(subject) / T1W_PATH)
+    t1w_img = nib.load(t1_path)
+    labels_path = str(DATA_DIR_PATH / str(subject) / LABELS_PATH)
+    labels_img = nib.load(labels_path)
     labels_info = _read_label_img_extension(labels_img)
     labels_grouping = _group_destrieux_labels(labels_info['label_names'])
     labels_data = labels_img.get_data()
-    return t1w_img.get_data(), _replace_label(labels_data, labels_grouping)
+    return {
+        'T1': t1w_img.get_data(),
+        'labels': _replace_label(labels_data, labels_grouping),
+        'T1_file': t1_path,
+        'labels_file': labels_path,
+        'subject_id': subject
+    }
 
 
 def _replace_label(labels_data, labels_grouping):
@@ -113,7 +121,8 @@ def load_patches(subject, random_state=None):
     rng = check_random_state(random_state)
 
     # Load one subject
-    t1w_im, labels_im = load_brain(subject)
+    subject_info = load_brain(subject)
+    t1w_im, labels_im = subject_info['T1'], subject_info['labels']
     t1w_im = np.asarray(t1w_im, dtype=np.float32)
 
     shape = np.asarray(t1w_im.shape)
@@ -131,10 +140,14 @@ def load_patches(subject, random_state=None):
                                    h0:h0 + 64,
                                    z0:z0 + 64].reshape((1, 64, 64, 64)))
 
-    return (X, y)
+    subject_info['T1_patch'] = X
+    subject_info['labels_patch'] = y
+    subject_info.update({'patch_x0': w0, 'patch_y0': h0, 'patch_z0': z0})
+    return subject_info
 
 
-def cut_image(img):
+def cut_image(img, normalize=True):
+    img = np.array(img, dtype=np.float32)
     w, h, z = img.shape
     w_pad, h_pad, z_pad = map(int, (64 * np.ceil(d / 64) for d in img.shape))
     padded = np.zeros((w_pad, h_pad, z_pad))
@@ -142,16 +155,24 @@ def cut_image(img):
     for i in range(0, w_pad, 64):
         for j in range(0, h_pad, 64):
             for k in range(0, z_pad, 64):
-                yield padded[i:i + 64, j:j + 64, k:k + 64][None]
+                patch = padded[i:i + 64, j:j + 64, k:k + 64][None]
+                if normalize:
+                    patch /= np.max(img)
+                yield patch
 
 
 def stitch_image(patches, img_shape):
+    if not hasattr(patches, '__next__'):
+        patches = patches.__iter__()
     w_pad, h_pad, z_pad = map(int, (64 * np.ceil(d / 64) for d in img_shape))
     stitched = np.empty((w_pad, h_pad, z_pad))
     for i in range(0, w_pad, 64):
         for j in range(0, h_pad, 64):
             for k in range(0, z_pad, 64):
-                stitched[i:i + 64, j:j + 64, k:k + 64] = next(patches)
+                try:
+                    stitched[i:i + 64, j:j + 64, k:k + 64] = next(patches)
+                except StopIteration:
+                    raise ValueError('too few patches to complete image shape')
     w, h, z = img_shape
     return stitched[:w, :h, :z]
 
@@ -160,8 +181,17 @@ def list_subjects():
     return sorted([s.name for s in DATA_DIR_PATH.glob('[0-9]*/')])
 
 
-def feeder_sync(seed=None, max_patches=None, verbose=True):
-    subjects = list_subjects()
+def train_subjects(n_train=800):
+    return list_subjects()[:n_train]
+
+
+def test_subjects(n_train=800):
+    return list_subjects()[n_train:]
+
+
+def feeder_sync(subjects=None, seed=None, max_patches=None, verbose=True):
+    if subjects is None:
+        subjects = list_subjects()
     rng = np.random.RandomState(seed)
     n_patches = 0
     while(True):
@@ -172,8 +202,7 @@ def feeder_sync(seed=None, max_patches=None, verbose=True):
             if n_patches == max_patches:
                 return
             try:
-                X, y = load_patches(subject)
-                yield (X, y)
+                yield load_patches(subject)
                 n_patches += 1
             except Exception:
                 if verbose:
