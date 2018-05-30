@@ -69,7 +69,7 @@ class Unet(torch.nn.Module):
         return x
 
 
-def segmentation_loss(y_pred, y, gpu=False):
+def segmentation_loss(y_pred, y, attention_weights, gpu=False):
     # Rebalance the weights of the class, hard-coded from subject 414229
     # class_weights = torch.from_numpy(
     #     np.array([.014, .124, 0.282, 0.58], dtype=np.float32))
@@ -80,5 +80,6 @@ def segmentation_loss(y_pred, y, gpu=False):
     #     np.array([1., 1., 1., 1.], dtype=np.float32))
     if gpu:
         class_weights = class_weights.cuda()
-    loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights)
-    return loss_fn(y_pred, y)
+    losses = F.cross_entropy(y_pred, y, weight=class_weights, reduce=False)
+    losses = losses * attention_weights
+    return losses.mean()

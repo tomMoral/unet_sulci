@@ -57,15 +57,17 @@ if __name__ == "__main__":
 
             patch = next(feeder)
             X, y = patch['T1_patch'], patch['labels_patch']
+            attention = patch['attention_weights']
             if args.gpu:
                 X = X.cuda()
                 y = y.cuda()
+                attention = attention.cuda()
 
             # Forward pass: compute predicted y by passing x to the model.
             y_pred = unet(X)
 
             # Compute and print loss.
-            loss = segmentation_loss(y_pred, y, args.gpu)
+            loss = segmentation_loss(y_pred, y, attention, args.gpu)
             cost.append(loss.item())
             print("[Iteration {}] cost function {:.3e}"
                   .format(t, cost[-1]))
