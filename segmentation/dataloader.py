@@ -113,12 +113,14 @@ def _group_destrieux_labels(label_names):
 
 
 # def attention_weights(y_true, window_size=5, weight=10.):
-def attention_weights(y_true, window_size=5, weight=7.):
+def attention_weights(y_true, window_size=5, weight=7., gpu=False):
     padding = int(window_size / 2)
     mp = torch.nn.MaxPool3d((window_size, window_size, window_size),
                             stride=1, padding=padding)
     # background is 0 and subcortical is 1, see dataloader.GROUPED_LABEL_NAMES
     gray_matter = torch.tensor(y_true > 1, dtype=torch.float32)
+    if gpu:
+        mp, gray_matter = mp.cuda(), gray_matter.cuda()
     opening = mp(gray_matter)
     return (opening - gray_matter) * float(weight) + 1.
 
@@ -140,7 +142,7 @@ def find_patch(img, min_nonzero, random_state=None):
     raise RuntimeError("couldn't find a patch without many zeros")
 
 
-def load_patches(subject, min_nonzero=.2, random_state=None):
+def load_patches(subject, min_nonzero=.2, random_state=None, gpu=False):
     """Load and preprocess the data from 1 subject
 
     PReprocess:
@@ -159,10 +161,12 @@ def load_patches(subject, min_nonzero=.2, random_state=None):
 
     y = torch.from_numpy(y)
     X = torch.from_numpy(X)
+    if gpu:
+        X, y = X.cuda(), y.cuda()
 
     subject_info['T1_patch'] = X
     subject_info['labels_patch'] = y
-    subject_info['attention_weights'] = attention_weights(y)
+    subject_info['attention_weights'] = attention_weights(y, gpu=gpu)
     subject_info.update({'patch_x0': w0, 'patch_y0': h0, 'patch_z0': z0})
     return subject_info
 
@@ -202,15 +206,16 @@ def list_subjects():
     return sorted([s.name for s in DATA_DIR_PATH.glob('[0-9]*/')])
 
 
-def train_subjects(n_train=800):
+def train_subjects(n_train=700):
     return list_subjects()[:n_train]
 
 
-def test_subjects(n_train=800):
+def test_subjects(n_train=700):
     return list_subjects()[n_train:]
 
 
-def feeder_sync(subjects=None, seed=None, max_patches=None, verbose=True):
+def feeder_sync(subjects=None, seed=None, max_patches=None,
+                gpu=False, verbose=True):
     if subjects is None:
         subjects = list_subjects()
     rng = np.random.RandomState(seed)
@@ -223,7 +228,7 @@ def feeder_sync(subjects=None, seed=None, max_patches=None, verbose=True):
             if n_patches == max_patches:
                 return
             try:
-                yield load_patches(subject)
+                yield load_patches(subject, gpu=gpu)
                 n_patches += 1
             except Exception as e:
                 if verbose:

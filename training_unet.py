@@ -51,7 +51,8 @@ if __name__ == "__main__":
     test_subject = dataloader.load_brain(dataloader.test_subjects()[0])
     test_img_shape = test_subject['T1'].shape
     batch_tst = dataloader.cut_image(test_subject['T1'])
-    feeder = dataloader.feeder_sync(subjects=train_subjects, seed=0)
+    feeder = dataloader.feeder_sync(
+        subjects=train_subjects, seed=0, gpu=args.gpu)
     try:
         cost = []
         for t in range(args.n_iter):
@@ -59,10 +60,10 @@ if __name__ == "__main__":
             patch = next(feeder)
             X, y = patch['T1_patch'], patch['labels_patch']
             attention = patch['attention_weights']
-            if args.gpu:
-                X = X.cuda()
-                y = y.cuda()
-                attention = attention.cuda()
+            # if args.gpu:
+            #     X = X.cuda()
+            #     y = y.cuda()
+            #     attention = attention.cuda()
 
             # Forward pass: compute predicted y by passing x to the model.
             y_pred = unet(X)
