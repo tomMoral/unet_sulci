@@ -113,7 +113,7 @@ def _group_destrieux_labels(label_names):
 
 
 # def attention_weights(y_true, window_size=5, weight=10.):
-def attention_weights(y_true, window_size=5, weight=5.):
+def attention_weights(y_true, window_size=5, weight=7.):
     padding = int(window_size / 2)
     mp = torch.nn.MaxPool3d((window_size, window_size, window_size),
                             stride=1, padding=padding)
@@ -131,11 +131,11 @@ def find_patch(img, min_nonzero, random_state=None):
         i0 = [rng.randint(m) for m in shape]
         w0, h0, z0 = i0
 
-        X = img[w0:w0 + 64,
+        y = img[w0:w0 + 64,
                 h0:h0 + 64,
-                z0:z0 + 64].reshape((1, 1, 64, 64, 64))
-        if (X != 0).mean() > min_nonzero:
-            return X, i0
+                z0:z0 + 64].reshape((1, 64, 64, 64))
+        if (y != 0).mean() > min_nonzero:
+            return y, i0
 
     raise RuntimeError("couldn't find a patch without many zeros")
 
@@ -151,13 +151,14 @@ def load_patches(subject, min_nonzero=.2, random_state=None):
     t1w_im, labels_im = subject_info['T1'], subject_info['labels']
     t1w_im = np.asarray(t1w_im, dtype=np.float32)
 
-    X, (w0, h0, z0) = find_patch(t1w_im, min_nonzero, random_state)
+    y, (w0, h0, z0) = find_patch(labels_im, min_nonzero, random_state)
+    X = t1w_im[w0:w0 + 64,
+               h0:h0 + 64,
+               z0:z0 + 64].reshape((1, 1, 64, 64, 64))
     X /= np.max(t1w_im)
-    X = torch.from_numpy(X)
 
-    y = torch.from_numpy(labels_im[w0:w0 + 64,
-                                   h0:h0 + 64,
-                                   z0:z0 + 64].reshape((1, 64, 64, 64)))
+    y = torch.from_numpy(y)
+    X = torch.from_numpy(X)
 
     subject_info['T1_patch'] = X
     subject_info['labels_patch'] = y
@@ -224,9 +225,9 @@ def feeder_sync(subjects=None, seed=None, max_patches=None, verbose=True):
             try:
                 yield load_patches(subject)
                 n_patches += 1
-            except Exception:
+            except Exception as e:
                 if verbose:
-                    print('bad subject: {}'.format(subject))
+                    print('bad subject: {}\n{}'.format(subject, e))
 
 
 def feeder(queue_feed, stop_event, batch_size=1, seed=None):

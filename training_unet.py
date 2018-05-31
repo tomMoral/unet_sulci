@@ -22,12 +22,13 @@ def time_stamp():
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser('Programme to launch experiment')
+    parser = argparse.ArgumentParser('Program to launch experiment')
     parser.add_argument('--gpu', action="store_true",
                         help='Use the GPU for training')
     parser.add_argument('--preprocessors', type=int, default=5,
                         help='# of process to load the patches.')
     parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--n_iter', type=int, default=5000)
 
     args = parser.parse_args()
 
@@ -53,7 +54,7 @@ if __name__ == "__main__":
     feeder = dataloader.feeder_sync(subjects=train_subjects, seed=0)
     try:
         cost = []
-        for t in range(5000):
+        for t in range(args.n_iter):
 
             patch = next(feeder)
             X, y = patch['T1_patch'], patch['labels_patch']
