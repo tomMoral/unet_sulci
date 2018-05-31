@@ -1,18 +1,22 @@
+import os
 import datetime
+import json
 
 import torch
 import pathlib
 import numpy as np
-import torch.multiprocessing as mp
+# import torch.multiprocessing as mp
 from matplotlib import pyplot as plt
 from nilearn import image
 
 from segmentation.unet import Unet, segmentation_loss
 from segmentation import dataloader
 from segmentation.plotting import plot_segmentation, plot_patch_prediction
+from segmentation.utils import get_commit_hash
+import segmentation.config
 
+RESULTS_DIR = pathlib.Path(getattr(segmentation.config, 'RESULTS_DIR', '.'))
 
-import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 
@@ -27,14 +31,18 @@ if __name__ == "__main__":
                         help='Use the GPU for training')
     parser.add_argument('--preprocessors', type=int, default=5,
                         help='# of process to load the patches.')
-    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--learning_rate', type=float, default=1e-4)
     parser.add_argument('--n_iter', type=int, default=5000)
+    parser.add_argument('--attention', type=float, default=7.)
 
     args = parser.parse_args()
 
-    plots_dir = pathlib.Path('.') / 'figures' / 'training_unet_{}'.format(
+    out_dir = RESULTS_DIR / 'training_unet_{}'.format(
         time_stamp())
+    plots_dir = out_dir / 'figures'
+    test_pred_dir = out_dir / 'test_predictions'
     plots_dir.mkdir(parents=True)
+    test_pred_dir.mkdir(parents=True)
 
     # queue_feed, stop_event, batch_feeder = get_queue_feeder(
     #     batch_size=1, maxsize_queue=20, n_process=args.preprocessors)
@@ -44,7 +52,7 @@ if __name__ == "__main__":
         torch.cuda.set_device(0)
         unet = unet.cuda()
 
-    learning_rate = args.lr
+    learning_rate = args.learning_rate
     optimizer = torch.optim.Adam(unet.parameters(), lr=learning_rate)
 
     train_subjects = dataloader.train_subjects()
@@ -52,7 +60,8 @@ if __name__ == "__main__":
     test_img_shape = test_subject['T1'].shape
     batch_tst = dataloader.cut_image(test_subject['T1'])
     feeder = dataloader.feeder_sync(
-        subjects=train_subjects, seed=0, gpu=args.gpu)
+        subjects=train_subjects, seed=0, gpu=args.gpu,
+        attention_coef=args.attention)
     try:
         cost = []
         for t in range(args.n_iter):
@@ -60,10 +69,6 @@ if __name__ == "__main__":
             patch = next(feeder)
             X, y = patch['T1_patch'], patch['labels_patch']
             attention = patch['attention_weights']
-            # if args.gpu:
-            #     X = X.cuda()
-            #     y = y.cuda()
-            #     attention = attention.cuda()
 
             # Forward pass: compute predicted y by passing x to the model.
             y_pred = unet(X)
@@ -96,15 +101,19 @@ if __name__ == "__main__":
             test_pred.append(np.argmax(np.array(unet(batch).data), axis=1)[0])
         stitched = dataloader.stitch_image(test_pred, test_img_shape)
         pred_img = image.new_img_like(test_subject['labels_file'],
-                                        stitched)
+                                      stitched)
         true_img = image.new_img_like(test_subject['labels_file'],
-                                        test_subject['labels'])
+                                      test_subject['labels'])
+        anat_img = image.load_img(test_subject['T1_file'])
         pred_img.to_filename(
-            str(plots_dir /
+            str(test_pred_dir /
                 'prediction_for_subject_{}_iter_{}.nii.gz'.format(
                     test_subject['subject_id'], t)))
         true_img.to_filename(
-            str(plots_dir / 'true_labels_for_subject_{}.nii.gz'.format(
+            str(test_pred_dir / 'true_labels_for_subject_{}.nii.gz'.format(
+                test_subject['subject_id'])))
+        anat_img.to_filename(
+            str(test_pred_dir / 'T1_for_subject_{}.nii.gz'.format(
                 test_subject['subject_id'])))
         plot_segmentation(
             test_subject['T1_file'],
@@ -114,9 +123,12 @@ if __name__ == "__main__":
                 plots_dir /
                 'whole_image_segmentation_subject_{}_iter_{}.png'.format(
                     test_subject['subject_id'], t)))
-
+        with open(str(out_dir / 'parameters.json'), 'w') as pf:
+            pf.write(
+                json.dumps(dict(args.__dict__, commit=get_commit_hash())))
     finally:
-        print("Stopping the batch_feeders")
+        print('Results saved in {}'.format(str(out_dir)))
+        # print("Stopping the batch_feeders")
         # stop_event.set()
         # for p in batch_feeder:
         #     try:

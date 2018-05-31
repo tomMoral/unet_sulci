@@ -142,7 +142,8 @@ def find_patch(img, min_nonzero, random_state=None):
     raise RuntimeError("couldn't find a patch without many zeros")
 
 
-def load_patches(subject, min_nonzero=.2, random_state=None, gpu=False):
+def load_patches(subject, min_nonzero=.2,
+                 random_state=None, gpu=False, attention_coef=7.):
     """Load and preprocess the data from 1 subject
 
     PReprocess:
@@ -166,7 +167,8 @@ def load_patches(subject, min_nonzero=.2, random_state=None, gpu=False):
 
     subject_info['T1_patch'] = X
     subject_info['labels_patch'] = y
-    subject_info['attention_weights'] = attention_weights(y, gpu=gpu)
+    subject_info['attention_weights'] = attention_weights(
+        y, weight=attention_coef, gpu=gpu)
     subject_info.update({'patch_x0': w0, 'patch_y0': h0, 'patch_z0': z0})
     return subject_info
 
@@ -215,7 +217,7 @@ def test_subjects(n_train=700):
 
 
 def feeder_sync(subjects=None, seed=None, max_patches=None,
-                gpu=False, verbose=True):
+                attention_coef=7., gpu=False, verbose=True):
     if subjects is None:
         subjects = list_subjects()
     rng = np.random.RandomState(seed)
@@ -228,7 +230,9 @@ def feeder_sync(subjects=None, seed=None, max_patches=None,
             if n_patches == max_patches:
                 return
             try:
-                yield load_patches(subject, gpu=gpu)
+                yield load_patches(
+                    subject, gpu=gpu, attention_coef=attention_coef,
+                    random_state=rng)
                 n_patches += 1
             except Exception as e:
                 if verbose:
