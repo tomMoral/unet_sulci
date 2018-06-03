@@ -74,6 +74,7 @@ def segmentation_loss(y_pred, y, attention_weights, gpu=False):
     # class_weights = torch.from_numpy(
     #     np.array([.014, .124, 0.282, 0.58], dtype=np.float32))
     # rebalance hard-coded from many sampled patches
+    # see dataloader.GROUPED_LABEL_NAMES
     class_weights = torch.from_numpy(
         np.array([0.042, 0.135, 0.283, 0.54], dtype=np.float32))
     # class_weights = torch.from_numpy(
