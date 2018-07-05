@@ -34,6 +34,8 @@ if __name__ == "__main__":
     parser.add_argument('--learning_rate', type=float, default=1e-4)
     parser.add_argument('--n_iter', type=int, default=5000)
     parser.add_argument('--attention', type=float, default=7.)
+    parser.add_argument('--lr_step_size', type=int, default=500)
+    parser.add_argument('--lr_decay', type=float, default=.8)
 
     args = parser.parse_args()
 
@@ -54,6 +56,8 @@ if __name__ == "__main__":
 
     learning_rate = args.learning_rate
     optimizer = torch.optim.Adam(unet.parameters(), lr=learning_rate)
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, step_size=args.lr_step_size, gamma=args.lr_decay)
 
     train_subjects = dataloader.train_subjects()
     test_subject = dataloader.load_brain(dataloader.test_subjects()[0])
@@ -65,6 +69,7 @@ if __name__ == "__main__":
     try:
         cost = []
         for t in range(args.n_iter):
+            scheduler.step()
 
             patch = next(feeder)
             X, y = patch['T1_patch'], patch['labels_patch']
@@ -91,6 +96,7 @@ if __name__ == "__main__":
                 fig.savefig(str(
                     plots_dir / 'prediction_iteration_{}.png'.format(t)))
                 plt.close('all')
+                print('learning rate: ', optimizer.param_groups[0]['lr'])
         # test on whole image:
         print('Testing ...')
         test_pred = []
