@@ -13,6 +13,7 @@ from segmentation.unet import Unet, segmentation_loss
 from segmentation import dataloader
 from segmentation.plotting import plot_segmentation, plot_patch_prediction
 from segmentation.utils import get_commit_hash
+from segmentation.metrics import intersection_over_union
 import segmentation.config
 
 RESULTS_DIR = pathlib.Path(getattr(segmentation.config, 'RESULTS_DIR', '.'))
@@ -120,6 +121,9 @@ if __name__ == "__main__":
         true_img.to_filename(
             str(test_pred_dir / 'true_labels_for_subject_{}.nii.gz'.format(
                 test_subject['subject_id'])))
+        iou = intersection_over_union(true_img.get_data() == 3,
+                                      pred_img.get_data() == 3)
+        print('intersection over union on test img: ', iou)
         anat_img.to_filename(
             str(test_pred_dir / 'T1_for_subject_{}.nii.gz'.format(
                 test_subject['subject_id'])))
@@ -133,7 +137,8 @@ if __name__ == "__main__":
                     test_subject['subject_id'], t)))
         with open(str(out_dir / 'parameters.json'), 'w') as pf:
             pf.write(
-                json.dumps(dict(args.__dict__, commit=get_commit_hash())))
+                json.dumps(dict(args.__dict__, iou=float(iou),
+                                commit=get_commit_hash())))
     finally:
         print('Results saved in {}'.format(str(out_dir)))
         # print("Stopping the batch_feeders")
