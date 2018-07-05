@@ -36,6 +36,7 @@ if __name__ == "__main__":
     parser.add_argument('--attention', type=float, default=7.)
     parser.add_argument('--lr_step_size', type=int, default=500)
     parser.add_argument('--lr_decay', type=float, default=.8)
+    parser.add_argument('--optimizer', choices=['sgd', 'adam'], default='sgd')
 
     args = parser.parse_args()
 
@@ -55,7 +56,8 @@ if __name__ == "__main__":
         unet = unet.cuda()
 
     learning_rate = args.learning_rate
-    optimizer = torch.optim.Adam(unet.parameters(), lr=learning_rate)
+    optimizer = {'sgd': torch.optim.SGD, 'adam': torch.optim.Adam}[
+        args.optimizer](unet.parameters(), lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(
         optimizer, step_size=args.lr_step_size, gamma=args.lr_decay)
 
