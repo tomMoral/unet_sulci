@@ -17,6 +17,7 @@ def plot_segmentation(anat, y_true, y_pred, out_file=None, **kwargs):
         vmin=0,
         vmax=5,
         axes=axes[0],
+        cut_coords=[0, 0, 0],
         **kwargs)
     axes[0].set_title("Label")
 
@@ -27,6 +28,7 @@ def plot_segmentation(anat, y_true, y_pred, out_file=None, **kwargs):
         vmin=0,
         vmax=5,
         axes=axes[1],
+        cut_coords=[0, 0, 0],
         **kwargs)
     axes[1].set_title("Prediction")
 
