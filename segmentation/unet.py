@@ -2,6 +2,10 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 
+from nilearn import image
+
+from . import dataloader, metrics
+
 
 class Unet(torch.nn.Module):
     """Unet network for the sulcus segmentation
@@ -84,3 +88,26 @@ def segmentation_loss(y_pred, y, attention_weights, gpu=False):
     losses = F.cross_entropy(y_pred, y, weight=class_weights, reduce=False)
     losses = losses * attention_weights
     return losses.mean()
+
+
+def test_full_img(model, test_subject, gpu=False):
+    test_subject = dataloader.load_brain(test_subject)
+    test_img_shape = test_subject['T1'].shape
+    test_batches = dataloader.cut_image(test_subject['T1'])
+    test_pred = []
+    for batch in test_batches:
+        batch = torch.from_numpy(np.array([batch], dtype=np.float32))
+        if gpu:
+            batch = batch.cuda()
+        test_pred.append(np.argmax(np.array(model(batch).data), axis=1)[0])
+    stitched = dataloader.stitch_image(test_pred, test_img_shape)
+    pred_img = image.new_img_like(test_subject['labels_file'],
+                                  stitched)
+    true_img = image.new_img_like(test_subject['labels_file'],
+                                  test_subject['labels'])
+    anat_img = image.load_img(test_subject['T1_file'])
+    iou = metrics.intersection_over_union(true_img.get_data() == 3,
+                                          pred_img.get_data() == 3)
+
+    return {'pred_img': pred_img, 'true_img': true_img, 'anat_img': anat_img,
+            'iou': iou, 'subject': test_subject}

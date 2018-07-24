@@ -7,9 +7,8 @@ import pathlib
 import numpy as np
 # import torch.multiprocessing as mp
 from matplotlib import pyplot as plt
-from nilearn import image
 
-from segmentation.unet import Unet, segmentation_loss
+from segmentation.unet import Unet, segmentation_loss, test_full_img
 from segmentation import dataloader
 from segmentation.plotting import plot_segmentation, plot_patch_prediction
 from segmentation.utils import get_commit_hash
@@ -32,10 +31,10 @@ if __name__ == "__main__":
                         help='Use the GPU for training')
     parser.add_argument('--preprocessors', type=int, default=5,
                         help='# of process to load the patches.')
-    parser.add_argument('--learning_rate', type=float, default=1e-4)
+    parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--n_iter', type=int, default=5000)
     parser.add_argument('--attention', type=float, default=7.)
-    parser.add_argument('--lr_step_size', type=int, default=500)
+    parser.add_argument('--lr_step_size', type=int, default=1000)
     parser.add_argument('--lr_decay', type=float, default=.8)
     parser.add_argument('--optimizer', choices=['sgd', 'adam'], default='sgd')
 
@@ -63,9 +62,6 @@ if __name__ == "__main__":
         optimizer, step_size=args.lr_step_size, gamma=args.lr_decay)
 
     train_subjects = dataloader.train_subjects()
-    test_subject = dataloader.load_brain(dataloader.test_subjects()[0])
-    test_img_shape = test_subject['T1'].shape
-    batch_tst = dataloader.cut_image(test_subject['T1'])
     feeder = dataloader.feeder_sync(
         subjects=train_subjects, seed=0, gpu=args.gpu,
         attention_coef=args.attention)
@@ -102,43 +98,41 @@ if __name__ == "__main__":
                 print('learning rate: ', optimizer.param_groups[0]['lr'])
         # test on whole image:
         print('Testing ...')
-        test_pred = []
-        for batch in batch_tst:
-            batch = torch.from_numpy(np.array([batch], dtype=np.float32))
-            if args.gpu:
-                batch = batch.cuda()
-            test_pred.append(np.argmax(np.array(unet(batch).data), axis=1)[0])
-        stitched = dataloader.stitch_image(test_pred, test_img_shape)
-        pred_img = image.new_img_like(test_subject['labels_file'],
-                                      stitched)
-        true_img = image.new_img_like(test_subject['labels_file'],
-                                      test_subject['labels'])
-        anat_img = image.load_img(test_subject['T1_file'])
-        pred_img.to_filename(
-            str(test_pred_dir /
-                'prediction_for_subject_{}_iter_{}.nii.gz'.format(
-                    test_subject['subject_id'], t)))
-        true_img.to_filename(
-            str(test_pred_dir / 'true_labels_for_subject_{}.nii.gz'.format(
-                test_subject['subject_id'])))
-        iou = intersection_over_union(true_img.get_data() == 3,
-                                      pred_img.get_data() == 3)
-        print('intersection over union on test img: ', iou)
-        anat_img.to_filename(
-            str(test_pred_dir / 'T1_for_subject_{}.nii.gz'.format(
-                test_subject['subject_id'])))
-        plot_segmentation(
-            test_subject['T1_file'],
-            true_img,
-            pred_img,
-            out_file=str(
-                plots_dir /
-                'whole_image_segmentation_subject_{}_iter_{}.png'.format(
-                    test_subject['subject_id'], t)))
-        with open(str(out_dir / 'parameters.json'), 'w') as pf:
-            pf.write(
-                json.dumps(dict(args.__dict__, iou=float(iou),
+        all_iou = {}
+        for test_subject in dataloader.test_subjects()[:10]:
+            try:
+                print('testing on subject ', test_subject)
+                test_res = test_full_img(unet, test_subject, gpu=args.gpu)
+                test_res['pred_img'].to_filename(
+                    str(test_pred_dir /
+                        'prediction_for_subject_{}_iter_{}.nii.gz'.format(
+                            test_subject, t)))
+                test_res['true_img'].to_filename(
+                    str(test_pred_dir /
+                        'true_labels_for_subject_{}.nii.gz'.format(
+                        test_subject)))
+                print('intersection over union on test img: ', test_res['iou'])
+                all_iou[test_subject] = test_res['iou']
+                test_res['anat_img'].to_filename(
+                    str(test_pred_dir / 'T1_for_subject_{}.nii.gz'.format(
+                        test_subject)))
+                plot_segmentation(
+                    test_res['subject']['T1_file'],
+                    test_res['true_img'],
+                    test_res['pred_img'],
+                    out_file=str(
+                        plots_dir /
+                        'whole_image_segmentation_subject_{}_iter_{}.png'.format(
+                            test_subject, t)))
+                with open(str(out_dir / 'parameters.json'), 'w') as pf:
+                    pf.write(
+                        json.dumps(
+                            dict(args.__dict__,
+                                iou={k: float(v) for k, v in all_iou.items()},
                                 commit=get_commit_hash())))
+            except Exception as e:
+                print('testing on subject {} failed:\n{}'.format(
+                    test_subject, e))
     finally:
         print('Results saved in {}'.format(str(out_dir)))
         # print("Stopping the batch_feeders")
