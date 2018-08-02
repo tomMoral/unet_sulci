@@ -5,3 +5,6 @@ carvana-image-masking-challenge
 data
 joblib
 .ipynb_checkpoints
+
+notes.txt
+segmentation/config.py
