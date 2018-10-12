@@ -99,7 +99,8 @@ def test_full_img(model, test_subject, gpu=False):
         batch = torch.from_numpy(np.array([batch], dtype=np.float32))
         if gpu:
             batch = batch.cuda()
-        test_pred.append(np.argmax(np.array(model(batch).data), axis=1)[0])
+        with torch.no_grad():
+            test_pred.append(np.argmax(np.array(model(batch).data), axis=1)[0])
     stitched = dataloader.stitch_image(test_pred, test_img_shape)
     pred_img = image.new_img_like(test_subject['labels_file'],
                                   stitched)
