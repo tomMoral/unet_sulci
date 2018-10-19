@@ -118,7 +118,8 @@ def attention_weights(y_true, window_size=5, weight=7., gpu=False):
     mp = torch.nn.MaxPool3d((window_size, window_size, window_size),
                             stride=1, padding=padding)
     # background is 0 and subcortical is 1, see dataloader.GROUPED_LABEL_NAMES
-    gray_matter = torch.tensor(y_true > 1, dtype=torch.float32)
+    gray_matter = torch.tensor(
+        np.asarray(y_true > 1, dtype=float), dtype=torch.float32)
     if gpu:
         mp, gray_matter = mp.cuda(), gray_matter.cuda()
     opening = mp(gray_matter)

@@ -30,7 +30,7 @@ html = """
 
 def plot_segmentation(anat, y_true, y_pred, out_file='segmentation', **kwargs):
 
-    small_anat = image.resample_img(anat, target_affine=np.eye(3) * 2)
+    small_anat = image.resample_img(anat, target_affine=np.eye(3))
     small_y_true = image.resample_to_img(
         y_true, small_anat, interpolation='nearest')
     small_y_pred = image.resample_to_img(
