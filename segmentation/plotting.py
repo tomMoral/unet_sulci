@@ -44,6 +44,8 @@ def plot_segmentation(anat, y_true, y_pred, out_file='segmentation', **kwargs):
                               predicted_map=pred_view.get_iframe())
     with open('{}.html'.format(out_file), 'wb') as f:
         f.write(filled_html.encode('utf-8'))
+    true_view.save_as_html('{}_y_true.html'.format(out_file))
+    pred_view.save_as_html('{}_y_pred.html'.format(out_file))
 
     fig, axes = plt.subplots(2, 1)
 
