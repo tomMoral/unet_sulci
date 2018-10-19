@@ -122,7 +122,7 @@ if __name__ == "__main__":
                     test_res['pred_img'],
                     out_file=str(
                         plots_dir /
-                        'whole_image_segmentation_subject_{}_iter_{}.png'.format(
+                        'whole_image_segmentation_subject_{}_iter_{}'.format(
                             test_subject, t)))
                 with open(str(out_dir / 'parameters.json'), 'w') as pf:
                     pf.write(

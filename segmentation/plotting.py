@@ -2,11 +2,43 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from nilearn import plotting as niplot
+from nilearn import image
 
 _DEFAULT_COLORS = ('white', 'gray', 'blue', 'red')
 
+html = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>segmentation</title>
+    <meta charset="UTF-8"/>
+</head>
+<body>
+<div id="true-segmentation">
+<h3>True</h3>
+{true_map}
+</div>
+<div id="predicted-segmentation">
+<h3>predicted</h3>
+{predicted_map}
+</div>
+</body>
+</html>
 
-def plot_segmentation(anat, y_true, y_pred, out_file=None, **kwargs):
+"""
+
+
+def plot_segmentation(anat, y_true, y_pred, out_file='segmentation', **kwargs):
+
+    y_true = image.resample_to_img(y_true, anat, interpolation='nearest')
+    y_pred = image.resample_to_img(y_true, anat, interpolation='nearest')
+
+    true_view = niplot.view_stat_map(y_true, bg_img=anat, cmap='tab20c_r')
+    pred_view = niplot.view_stat_map(y_pred, bg_img=anat, cmap='tab20c_r')
+    filled_html = html.format(true_map=true_view.get_iframe(),
+                              predicted_map=pred_view.get_iframe())
+    with open('{}.html'.format(out_file), 'wb') as f:
+        f.write(filled_html.encode('utf-8'))
 
     fig, axes = plt.subplots(2, 1)
 
@@ -32,8 +64,7 @@ def plot_segmentation(anat, y_true, y_pred, out_file=None, **kwargs):
         **kwargs)
     axes[1].set_title("Prediction")
 
-    if out_file is not None:
-        plt.savefig(out_file)
+    plt.savefig('{}.png'.format(out_file))
 
 
 def check_cmap(cmap, dtype):
