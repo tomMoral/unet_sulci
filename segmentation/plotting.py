@@ -30,11 +30,16 @@ html = """
 
 def plot_segmentation(anat, y_true, y_pred, out_file='segmentation', **kwargs):
 
-    y_true = image.resample_to_img(y_true, anat, interpolation='nearest')
-    y_pred = image.resample_to_img(y_true, anat, interpolation='nearest')
+    small_anat = image.resample_img(anat, target_affine=np.eye(3) * 2)
+    small_y_true = image.resample_to_img(
+        y_true, small_anat, interpolation='nearest')
+    small_y_pred = image.resample_to_img(
+        y_pred, small_anat, interpolation='nearest')
 
-    true_view = niplot.view_stat_map(y_true, bg_img=anat, cmap='tab20c_r')
-    pred_view = niplot.view_stat_map(y_pred, bg_img=anat, cmap='tab20c_r')
+    true_view = niplot.view_stat_map(
+        small_y_true, bg_img=small_anat, cmap='tab20c_r')
+    pred_view = niplot.view_stat_map(
+        small_y_pred, bg_img=small_anat, cmap='tab20c_r')
     filled_html = html.format(true_map=true_view.get_iframe(),
                               predicted_map=pred_view.get_iframe())
     with open('{}.html'.format(out_file), 'wb') as f:
