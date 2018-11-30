@@ -8,10 +8,18 @@
   * A cleaned AC/PC-aligned T1w image of each subject brain (not in MNI space)
   * The [Destrieux atlas](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2937159/) in voxel space
 
-Data can be downloaded with 
+Data can be downloaded within the Inria network 
 ```bash
 rsync -avzh --prune-empty-dirs --include="*/" --include="*/T1w/T1*brain.nii.gz" --include="*/T1w/*a2009*.nii.gz" --exclude="*" -e ssh dragostore:/data/data/HCP900/* .
 ```
+
+
+### Current Status
+* Implementation based on PyTorch
+* [Overleaf account of where we are](https://v1.overleaf.com/21500988bsgxdrgdjwnc)
+* Will upload a [Boto](http://boto.cloudhackers.com/en/latest/)-based script to download the files
+
+## Old plan
 
 ### Base ourselves on (but this is open to discussion):
 *  Keras (Install with `conda install -c conda-forge keras`)
