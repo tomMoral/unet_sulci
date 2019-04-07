@@ -1,6 +1,16 @@
 # 2018 Retreat P8: Automatic identification of Brain Sulci based on DNN
 
 
+## Install:
+
+Requirements are listed in `requirement.txt`.
+You should create a file `segmentation/config.py` with variable pointing to the HCP data:
+
+```python
+DATA_DIR = "/path/to/hcp/repo"
+CACHE_DIR = "/path/to/cache/dir"
+```
+
 ## Overall plan:
 
 ### Dataset
@@ -8,7 +18,7 @@
   * A cleaned AC/PC-aligned T1w image of each subject brain (not in MNI space)
   * The [Destrieux atlas](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2937159/) in voxel space
 
-Data can be downloaded within the Inria network 
+Data can be downloaded within the Inria network
 ```bash
 rsync -avzh --prune-empty-dirs --include="*/" --include="*/T1w/T1*brain.nii.gz" --include="*/T1w/*a2009*.nii.gz" --exclude="*" -e ssh dragostore:/data/data/HCP900/* .
 ```

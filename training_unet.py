@@ -12,7 +12,6 @@ from segmentation.unet import Unet, segmentation_loss, test_full_img
 from segmentation import dataloader
 from segmentation.plotting import plot_segmentation, plot_patch_prediction
 from segmentation.utils import get_commit_hash
-from segmentation.metrics import intersection_over_union
 import segmentation.config
 
 RESULTS_DIR = pathlib.Path(getattr(segmentation.config, 'RESULTS_DIR', '.'))
@@ -50,6 +49,8 @@ if __name__ == "__main__":
     # queue_feed, stop_event, batch_feeder = get_queue_feeder(
     #     batch_size=1, maxsize_queue=20, n_process=args.preprocessors)
 
+    patch_size = 64
+
     unet = Unet(n_outputs=4)
     if args.gpu:
         torch.cuda.set_device(0)
@@ -64,7 +65,7 @@ if __name__ == "__main__":
     train_subjects = dataloader.train_subjects()
     feeder = dataloader.feeder_sync(
         subjects=train_subjects, seed=0, gpu=args.gpu,
-        attention_coef=args.attention)
+        attention_coef=args.attention, patch_size=patch_size)
     try:
         cost = []
         for t in range(args.n_iter):
@@ -91,45 +92,49 @@ if __name__ == "__main__":
                 y_pred = np.argmax(y_pred, axis=1)
                 fig = plot_patch_prediction(
                     np.array(X.data)[0, 0], np.array(y.data)[0],
-                    y_pred[0], z=30, patch_info=patch)
+                    y_pred[0], z=4, patch_info=patch)
                 fig.savefig(str(
                     plots_dir / 'prediction_iteration_{}.png'.format(t)))
                 plt.close('all')
                 print('learning rate: ', optimizer.param_groups[0]['lr'])
+
+                torch.save(unet.state_dict(), str(out_dir / 'model_saved.pth'))
+
         # test on whole image:
         print('Testing ...')
         all_iou = {}
         for test_subject in dataloader.test_subjects()[:10]:
             try:
                 print('testing on subject ', test_subject)
-                test_res = test_full_img(unet, test_subject, gpu=args.gpu)
+                test_res = test_full_img(unet, test_subject,
+                                         patch_size=patch_size, gpu=args.gpu)
                 test_res['pred_img'].to_filename(
                     str(test_pred_dir /
                         'prediction_for_subject_{}_iter_{}.nii.gz'.format(
                             test_subject, t)))
                 test_res['true_img'].to_filename(
                     str(test_pred_dir /
-                        'true_labels_for_subject_{}.nii.gz'.format(
-                        test_subject)))
+                        'true_labels_for_subject_{}.nii.gz'
+                        .format(test_subject)))
                 print('intersection over union on test img: ', test_res['iou'])
                 all_iou[test_subject] = test_res['iou']
                 test_res['anat_img'].to_filename(
-                    str(test_pred_dir / 'T1_for_subject_{}.nii.gz'.format(
-                        test_subject)))
+                    str(test_pred_dir / 'T1_for_subject_{}.nii.gz'
+                        .format(test_subject)))
                 plot_segmentation(
                     test_res['subject']['T1_file'],
                     test_res['true_img'],
                     test_res['pred_img'],
                     out_file=str(
                         plots_dir /
-                        'whole_image_segmentation_subject_{}_iter_{}'.format(
-                            test_subject, t)))
+                        'whole_image_segmentation_subject_{}_iter_{}'
+                        .format(test_subject, t)))
                 with open(str(out_dir / 'parameters.json'), 'w') as pf:
                     pf.write(
                         json.dumps(
                             dict(args.__dict__,
-                                iou={k: float(v) for k, v in all_iou.items()},
-                                commit=get_commit_hash())))
+                                 iou={k: float(v) for k, v in all_iou.items()},
+                                 commit=get_commit_hash())))
             except Exception as e:
                 print('testing on subject {} failed:\n{}'.format(
                     test_subject, e))

@@ -90,10 +90,11 @@ def segmentation_loss(y_pred, y, attention_weights, gpu=False):
     return losses.mean()
 
 
-def test_full_img(model, test_subject, gpu=False):
+def test_full_img(model, test_subject, patch_size, gpu=False):
     test_subject = dataloader.load_brain(test_subject)
     test_img_shape = test_subject['T1'].shape
-    test_batches = dataloader.cut_image(test_subject['T1'])
+    test_batches = dataloader.cut_image(test_subject['T1'],
+                                        patch_size=patch_size)
     test_pred = []
     for batch in test_batches:
         batch = torch.from_numpy(np.array([batch], dtype=np.float32))
@@ -101,7 +102,8 @@ def test_full_img(model, test_subject, gpu=False):
             batch = batch.cuda()
         with torch.no_grad():
             test_pred.append(np.argmax(np.array(model(batch).data), axis=1)[0])
-    stitched = dataloader.stitch_image(test_pred, test_img_shape)
+    stitched = dataloader.stitch_image(test_pred, test_img_shape,
+                                       patch_size=patch_size)
     pred_img = image.new_img_like(test_subject['labels_file'],
                                   stitched)
     true_img = image.new_img_like(test_subject['labels_file'],
