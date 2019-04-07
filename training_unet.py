@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     unet = Unet(n_outputs=4)
     if args.gpu:
-        torch.cuda.set_device(0)
+        torch.cuda.set_device(1)
         unet = unet.cuda()
 
     learning_rate = args.learning_rate
