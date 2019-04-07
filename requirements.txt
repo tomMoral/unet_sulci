@@ -1,0 +1,4 @@
+nilearn
+pytorch
+numpy
+matplotlib
