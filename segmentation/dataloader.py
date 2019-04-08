@@ -159,10 +159,12 @@ def _group_tier_labels(label_names):
 
 # def attention_weights(y_true, window_size=5, weight=10.):
 def attention_weights(y_true, y_tiers, window_size=3, weight=2.,
-                      window_size_tier=2, weight_tier=1., use_gpu=False):
+                      window_size_tier=3, weight_tier=1., use_gpu=False):
     padding = int(window_size / 2)
+    padding_tier = int(window_size_tier / 2)
     mp = torch.nn.MaxPool3d(window_size, stride=1, padding=padding)
-    mp_tiers = torch.nn.MaxPool3d(window_size_tier, stride=1, padding=padding)
+    mp_tiers = torch.nn.MaxPool3d(window_size_tier, stride=1,
+                                  padding=padding_tier)
     # background is 0 and subcortical is 1, see dataloader.GROUPED_LABEL_NAMES
     gray_matter = (y_true > 1).clone().to(dtype=torch.float32)
     if use_gpu:
@@ -304,6 +306,7 @@ def feeder_sync(subjects=None, seed=None, max_patches=None, patch_size=64,
             print(sys.exc_info())
             if verbose:
                 print('bad subject: {}\n{}'.format(subject, e))
+            raise
 
 
 def feeder(queue_feed, stop_event, batch_size=1, patch_size=64, seed=None):
