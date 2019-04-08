@@ -41,12 +41,12 @@ if __name__ == "__main__":
                         help='Use the GPU for training')
     parser.add_argument('--preprocessors', type=int, default=5,
                         help='# of process to load the patches.')
-    parser.add_argument('--learning_rate', type=float, default=1e-3)
+    parser.add_argument('--learning_rate', type=float, default=1e-4)
     parser.add_argument('--n_iter', type=int, default=5000)
-    parser.add_argument('--attention', type=float, default=7.)
+    parser.add_argument('--attention', type=float, default=1.)
     parser.add_argument('--lr_step_size', type=int, default=1000)
     parser.add_argument('--lr_decay', type=float, default=.8)
-    parser.add_argument('--optimizer', choices=['sgd', 'adam'], default='sgd')
+    parser.add_argument('--optimizer', choices=['sgd', 'adam'], default='adam')
 
     args = parser.parse_args()
 
