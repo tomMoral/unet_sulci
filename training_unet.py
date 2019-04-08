@@ -19,6 +19,17 @@ RESULTS_DIR = pathlib.Path(getattr(segmentation.config, 'RESULTS_DIR', '.'))
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 
+MANUAL_TEST_SUBJECT = [
+    '101309',
+    '108121',
+    '102008',
+    '107321',
+    '102311',
+    '121315',
+    '108525'
+]
+
+
 def time_stamp():
     return datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
 
@@ -62,7 +73,13 @@ if __name__ == "__main__":
     scheduler = torch.optim.lr_scheduler.StepLR(
         optimizer, step_size=args.lr_step_size, gamma=args.lr_decay)
 
-    train_subjects = dataloader.train_subjects()
+    train_subjects = set(dataloader.train_subjects())
+    train_subjects.difference_update(MANUAL_TEST_SUBJECT)
+    train_subjects = list(train_subjects)
+    test_subjects = MANUAL_TEST_SUBJECT
+    test_subjects += dataloader.test_subjects()
+    test_subjects = test_subjects[:10]
+
     feeder = dataloader.feeder_sync(
         subjects=train_subjects, seed=0, gpu=args.gpu,
         attention_coef=args.attention, patch_size=patch_size)
@@ -103,7 +120,7 @@ if __name__ == "__main__":
         # test on whole image:
         print('Testing ...')
         all_iou = {}
-        for test_subject in dataloader.test_subjects()[:10]:
+        for test_subject in test_subjects:
             try:
                 print('testing on subject ', test_subject)
                 test_res = test_full_img(unet, test_subject,
