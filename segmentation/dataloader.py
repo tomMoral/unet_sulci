@@ -26,6 +26,31 @@ _EXAMPLE_SUBJECT = 163432
 GROUPED_LABEL_NAMES = {
     'background': 0, 'subcortical': 1, 'gyrus': 2, 'sulcus': 3}
 
+TIER_PATTERNS = {
+    1: ['S_CENTRAL',
+        'LAT_FIS-POST',
+        'LAT_FIS-ANT-HORIZONT',
+        'LAT_FIS-ANT-VERTICAL',
+        'S_PERICALLOSAL',
+        'S_PARIETO_OCCIPITAL',
+        'S_CALCARINE',
+        'G_POSTCENTRAL',
+        'G_CUNEUS',
+        'G_FRONT_SUP',
+        'G_PRECENTRAL',
+        ],
+    2: ['S_SUBPARIETAL',
+        'S_PRECENTRAL-INF-PART',
+        'S_PRECENTRAL-SUP-PART',
+        'S_POSTCENTRAL',
+        'S_TEMPORAL_SUP',
+        'S_FRONT_SUP',
+        ],
+    3: ['S_OCCIPITAL_ANT',
+        'S_OC_MIDDLE_AND_LUNATUS',
+        ]
+}
+
 
 mem = Memory(location=CACHE_DIR, verbose=0)
 
@@ -53,14 +78,25 @@ def load_brain(subject):
     labels_img = nib.load(labels_path)
     labels_info = _read_label_img_extension(labels_img)
     labels_grouping = _group_destrieux_labels(labels_info['label_names'])
+    labels_tiers = _group_tier_labels(labels_info['label_names'])
     labels_data = labels_img.get_data()
     return {
         'T1': t1w_img.get_data(),
         'labels': _replace_label(labels_data, labels_grouping),
+        'labels_tiers': _replace_label(labels_data, labels_tiers),
+        'labels_destrieux': labels_data,
         'T1_file': t1_path,
         'labels_file': labels_path,
         'subject_id': subject
     }
+
+
+def get_label_tier(label):
+    for tier, patterns in TIER_PATTERNS.items():
+        for pattern in patterns:
+            if pattern in label:
+                return tier
+    return 4
 
 
 def _replace_label(labels_data, labels_grouping):
@@ -112,20 +148,33 @@ def _group_destrieux_labels(label_names):
     return grouping
 
 
+def _group_tier_labels(label_names):
+    grouping = {}
+    for label, name in label_names.items():
+        grouping[label] = get_label_tier(name)
+    grouping[0] = 0
+    assert len(grouping) == len(label_names)
+    return grouping
+
+
 # def attention_weights(y_true, window_size=5, weight=10.):
-def attention_weights(y_true, window_size=5, weight=7., use_gpu=False):
+def attention_weights(y_true, y_tiers, window_size=3, weight=2.,
+                      window_size_tier=2, weight_tier=1., use_gpu=False):
     padding = int(window_size / 2)
-    mp = torch.nn.MaxPool3d((window_size, window_size, window_size),
-                            stride=1, padding=padding)
+    mp = torch.nn.MaxPool3d(window_size, stride=1, padding=padding)
+    mp_tiers = torch.nn.MaxPool3d(window_size_tier, stride=1, padding=padding)
     # background is 0 and subcortical is 1, see dataloader.GROUPED_LABEL_NAMES
     gray_matter = (y_true > 1).clone().to(dtype=torch.float32)
     if use_gpu:
         mp, gray_matter = mp.cuda(), gray_matter.cuda()
+        mp_tiers = mp_tiers.cuda()
     opening = mp(gray_matter)
-    return (opening - gray_matter) * float(weight) + 1.
+    tier1_mask = mp_tiers(y_tiers)
+    weight = (opening - gray_matter) * float(weight) + 1.
+    return weight + tier1_mask * float(weight_tier)
 
 
-def find_patch(img, min_nonzero, patch_size=32, random_state=None):
+def find_patch(img, min_nonzero, patch_size=64, random_state=None):
     rng = check_random_state(random_state)
     shape = np.asarray(img.shape)
     shape -= patch_size + 1
@@ -143,7 +192,7 @@ def find_patch(img, min_nonzero, patch_size=32, random_state=None):
     raise RuntimeError("couldn't find a patch without many zeros")
 
 
-def load_patches(subject, min_nonzero=.2, patch_size=32,
+def load_patches(subject, min_nonzero=.2, patch_size=64,
                  random_state=None, use_gpu=False, attention_coef=7.):
     """Load and preprocess the data from 1 subject
 
@@ -153,6 +202,7 @@ def load_patches(subject, min_nonzero=.2, patch_size=32,
     # Load one subject
     subject_info = load_brain(subject)
     t1w_im, labels_im = subject_info['T1'], subject_info['labels']
+    labels_tiers = subject_info['labels_tiers']
     t1w_im = np.asarray(t1w_im, dtype=np.float32)
 
     y, (w0, h0, z0) = find_patch(labels_im, min_nonzero, patch_size=patch_size,
@@ -163,20 +213,26 @@ def load_patches(subject, min_nonzero=.2, patch_size=32,
                    (1, 1, patch_size, patch_size, patch_size))
     X /= np.max(t1w_im)
 
+    y_tiers = labels_tiers[w0:w0 + patch_size,
+                           h0:h0 + patch_size,
+                           z0:z0 + patch_size]
+    y_tiers[y_tiers != 1] = 0
+
     y = torch.from_numpy(y)
+    y_tiers = torch.from_numpy(y_tiers)
     X = torch.from_numpy(X)
     if use_gpu:
-        X, y = X.cuda(), y.cuda()
+        X, y, y_tiers = X.cuda(), y.cuda(), y_tiers.cuda()
 
     subject_info['T1_patch'] = X
     subject_info['labels_patch'] = y
     subject_info['attention_weights'] = attention_weights(
-        y, weight=attention_coef, use_gpu=use_gpu)
+        y, y_tiers, weight=attention_coef, use_gpu=use_gpu)
     subject_info.update({'patch_x0': w0, 'patch_y0': h0, 'patch_z0': z0})
     return subject_info
 
 
-def cut_image(img, normalize=True, patch_size=32):
+def cut_image(img, normalize=True, patch_size=64):
     img = np.array(img, dtype=np.float32)
     w, h, z = img.shape
     w_pad, h_pad, z_pad = map(int, (patch_size * np.ceil(d / patch_size)
@@ -194,7 +250,7 @@ def cut_image(img, normalize=True, patch_size=32):
                 yield patch
 
 
-def stitch_image(patches, img_shape, patch_size=32):
+def stitch_image(patches, img_shape, patch_size=64):
     if not hasattr(patches, '__next__'):
         patches = patches.__iter__()
     w_pad, h_pad, z_pad = map(int, (patch_size * np.ceil(d / patch_size)
@@ -225,7 +281,7 @@ def test_subjects(n_train=700):
     return list_subjects()[n_train:]
 
 
-def feeder_sync(subjects=None, seed=None, max_patches=None, patch_size=32,
+def feeder_sync(subjects=None, seed=None, max_patches=None, patch_size=64,
                 attention_coef=7., use_gpu=False, verbose=True):
     if subjects is None:
         subjects = list_subjects()
@@ -235,22 +291,22 @@ def feeder_sync(subjects=None, seed=None, max_patches=None, patch_size=32,
         subject = rng.choice(subjects)
         if verbose:
             print('subject: {}'.format(subject))
-        for i in range(100):
-            if n_patches == max_patches:
-                return
-            try:
+        try:
+            for i in range(100):
+                if n_patches == max_patches:
+                    return
                 yield load_patches(
                     subject, use_gpu=use_gpu, attention_coef=attention_coef,
                     patch_size=patch_size, random_state=rng)
                 n_patches += 1
-            except Exception as e:
-                import sys
-                print(sys.exc_info())
-                if verbose:
-                    print('bad subject: {}\n{}'.format(subject, e))
+        except Exception as e:
+            import sys
+            print(sys.exc_info())
+            if verbose:
+                print('bad subject: {}\n{}'.format(subject, e))
 
 
-def feeder(queue_feed, stop_event, batch_size=1, patch_size=32, seed=None):
+def feeder(queue_feed, stop_event, batch_size=1, patch_size=64, seed=None):
     """Batch feeder"""
 
     rng = np.random.RandomState(seed)

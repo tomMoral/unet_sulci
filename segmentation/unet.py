@@ -96,7 +96,9 @@ def test_full_img(model, test_subject, patch_size, use_gpu=False):
     test_batches = dataloader.cut_image(test_subject['T1'],
                                         patch_size=patch_size)
     test_pred = []
-    for batch in test_batches:
+    for i, batch in enumerate(test_batches):
+        print("[Unet] Test batch : {}".format(i),
+              end='\r', flush=True)
         batch = torch.from_numpy(np.array([batch], dtype=np.float32))
         if use_gpu:
             batch = batch.cuda()
