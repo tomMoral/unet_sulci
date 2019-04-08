@@ -73,7 +73,7 @@ class Unet(torch.nn.Module):
         return x
 
 
-def segmentation_loss(y_pred, y, attention_weights, gpu=False):
+def segmentation_loss(y_pred, y, attention_weights, use_gpu=False):
     # Rebalance the weights of the class, hard-coded from subject 414229
     # class_weights = torch.from_numpy(
     #     np.array([.014, .124, 0.282, 0.58], dtype=np.float32))
@@ -83,14 +83,14 @@ def segmentation_loss(y_pred, y, attention_weights, gpu=False):
         np.array([0.042, 0.135, 0.283, 0.54], dtype=np.float32))
     # class_weights = torch.from_numpy(
     #     np.array([1., 1., 1., 1.], dtype=np.float32))
-    if gpu:
+    if use_gpu:
         class_weights = class_weights.cuda()
     losses = F.cross_entropy(y_pred, y, weight=class_weights, reduce=False)
     losses = losses * attention_weights
     return losses.mean()
 
 
-def test_full_img(model, test_subject, patch_size, gpu=False):
+def test_full_img(model, test_subject, patch_size, use_gpu=False):
     test_subject = dataloader.load_brain(test_subject)
     test_img_shape = test_subject['T1'].shape
     test_batches = dataloader.cut_image(test_subject['T1'],
@@ -98,7 +98,7 @@ def test_full_img(model, test_subject, patch_size, gpu=False):
     test_pred = []
     for batch in test_batches:
         batch = torch.from_numpy(np.array([batch], dtype=np.float32))
-        if gpu:
+        if use_gpu:
             batch = batch.cuda()
         with torch.no_grad():
             test_pred.append(np.argmax(np.array(model(batch).data), axis=1)[0])

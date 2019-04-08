@@ -37,7 +37,7 @@ def time_stamp():
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser('Program to launch experiment')
-    parser.add_argument('--gpu', action="store_true",
+    parser.add_argument('--gpu', type=int, default=None,
                         help='Use the GPU for training')
     parser.add_argument('--preprocessors', type=int, default=5,
                         help='# of process to load the patches.')
@@ -63,9 +63,12 @@ if __name__ == "__main__":
     patch_size = 64
 
     unet = Unet(n_outputs=4)
-    if args.gpu:
-        torch.cuda.set_device(1)
+
+    use_gpu = False
+    if args.gpu is not None:
+        torch.cuda.set_device(args.gpu)
         unet = unet.cuda()
+        use_gpu = True
 
     learning_rate = args.learning_rate
     optimizer = {'sgd': torch.optim.SGD, 'adam': torch.optim.Adam}[
@@ -81,7 +84,7 @@ if __name__ == "__main__":
     test_subjects = test_subjects[:10]
 
     feeder = dataloader.feeder_sync(
-        subjects=train_subjects, seed=0, gpu=args.gpu,
+        subjects=train_subjects, seed=0, use_gpu=use_gpu,
         attention_coef=args.attention, patch_size=patch_size)
     try:
         cost = []
@@ -96,7 +99,7 @@ if __name__ == "__main__":
             y_pred = unet(X)
 
             # Compute and print loss.
-            loss = segmentation_loss(y_pred, y, attention, args.gpu)
+            loss = segmentation_loss(y_pred, y, attention, use_gpu=use_gpu)
             cost.append(loss.item())
             print("[Iteration {}] cost function {:.3e}"
                   .format(t, cost[-1]))
@@ -105,10 +108,10 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
             if not t % 10:
-                y_pred = y_pred.data
+                y_pred = y_pred.data.cpu()
                 y_pred = np.argmax(y_pred, axis=1)
                 fig = plot_patch_prediction(
-                    np.array(X.data)[0, 0], np.array(y.data)[0],
+                    np.array(X.data.cpu())[0, 0], np.array(y.data.cpu())[0],
                     y_pred[0], z=4, patch_info=patch)
                 fig.savefig(str(
                     plots_dir / 'prediction_iteration_{}.png'.format(t)))
@@ -124,7 +127,7 @@ if __name__ == "__main__":
             try:
                 print('testing on subject ', test_subject)
                 test_res = test_full_img(unet, test_subject,
-                                         patch_size=patch_size, gpu=args.gpu)
+                                         patch_size=patch_size, use_gpu=use_gpu)
                 test_res['pred_img'].to_filename(
                     str(test_pred_dir /
                         'prediction_for_subject_{}_iter_{}.nii.gz'.format(

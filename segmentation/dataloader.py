@@ -113,13 +113,13 @@ def _group_destrieux_labels(label_names):
 
 
 # def attention_weights(y_true, window_size=5, weight=10.):
-def attention_weights(y_true, window_size=5, weight=7., gpu=False):
+def attention_weights(y_true, window_size=5, weight=7., use_gpu=False):
     padding = int(window_size / 2)
     mp = torch.nn.MaxPool3d((window_size, window_size, window_size),
                             stride=1, padding=padding)
     # background is 0 and subcortical is 1, see dataloader.GROUPED_LABEL_NAMES
     gray_matter = (y_true > 1).clone().to(dtype=torch.float32)
-    if gpu:
+    if use_gpu:
         mp, gray_matter = mp.cuda(), gray_matter.cuda()
     opening = mp(gray_matter)
     return (opening - gray_matter) * float(weight) + 1.
@@ -144,7 +144,7 @@ def find_patch(img, min_nonzero, patch_size=32, random_state=None):
 
 
 def load_patches(subject, min_nonzero=.2, patch_size=32,
-                 random_state=None, gpu=False, attention_coef=7.):
+                 random_state=None, use_gpu=False, attention_coef=7.):
     """Load and preprocess the data from 1 subject
 
     PReprocess:
@@ -165,13 +165,13 @@ def load_patches(subject, min_nonzero=.2, patch_size=32,
 
     y = torch.from_numpy(y)
     X = torch.from_numpy(X)
-    if gpu:
+    if use_gpu:
         X, y = X.cuda(), y.cuda()
 
     subject_info['T1_patch'] = X
     subject_info['labels_patch'] = y
     subject_info['attention_weights'] = attention_weights(
-        y, weight=attention_coef, gpu=gpu)
+        y, weight=attention_coef, use_gpu=use_gpu)
     subject_info.update({'patch_x0': w0, 'patch_y0': h0, 'patch_z0': z0})
     return subject_info
 
@@ -226,7 +226,7 @@ def test_subjects(n_train=700):
 
 
 def feeder_sync(subjects=None, seed=None, max_patches=None, patch_size=32,
-                attention_coef=7., gpu=False, verbose=True):
+                attention_coef=7., use_gpu=False, verbose=True):
     if subjects is None:
         subjects = list_subjects()
     rng = np.random.RandomState(seed)
@@ -240,7 +240,7 @@ def feeder_sync(subjects=None, seed=None, max_patches=None, patch_size=32,
                 return
             try:
                 yield load_patches(
-                    subject, gpu=gpu, attention_coef=attention_coef,
+                    subject, use_gpu=use_gpu, attention_coef=attention_coef,
                     patch_size=patch_size, random_state=rng)
                 n_patches += 1
             except Exception as e:
