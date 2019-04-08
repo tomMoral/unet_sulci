@@ -221,7 +221,7 @@ def load_patches(subject, min_nonzero=.2, patch_size=64,
     y_tiers[y_tiers != 1] = 0
 
     y = torch.from_numpy(y)
-    y_tiers = torch.from_numpy(y_tiers)
+    y_tiers = torch.from_numpy(y_tiers).to(dtype=torch.float32)
     X = torch.from_numpy(X)
     if use_gpu:
         X, y, y_tiers = X.cuda(), y.cuda(), y_tiers.cuda()
